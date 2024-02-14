@@ -1,0 +1,135 @@
+#Making a deck of cards
+#Use is.vector() to find out if an object is an atomic vector
+is.vector(die)
+#Check the lenght of the vector with length()
+length(die)
+#Types of atomic vectors: integer, doubles, characters, logicals, complex, raw
+#Adding L makes an integer av, a number without a decimal
+int<-1L
+int<-c(1L,5L)
+#Using quotation marks makes a character vector
+text<-"ace"
+text<-c("ace", "hearts")
+#Double (aka numeric) vector stores regular numbers. Default
+#accurate to 16 significant digits
+die<-c(1,2,3,4,5,6)
+#Logicals store TRUE and FALSE. 
+#T and F are short for true false, but the meaning of T F can change, stick to TRUE FALSE
+3>4
+logic<-c(TRUE,TRUE,FALSE)
+#Complex store complex numbers, use i for imaginary
+comp<-c(1+1i,1+2i,1+3i)
+#Raw store raw bytes of data. Format is raw(n). Complicated so use help page
+raw(3)
+
+#Use typeof() to see if vector is integer or character
+typeof(die)
+typeof("hello")
+
+#Making a deck
+hand<-c("ace","king","queen","jack","ten")
+
+#Attribute: info you attach to object (like an atomic vector)
+#Usually ignored except certain R functions
+#3 types: names, dimensions(dim), classes
+
+#To check attributes on object:
+attributes(die)
+#To look at value of name attribute
+names(die)
+#To assign a names attribute:
+names(die)<-c("one","two","three","four","five","six")
+#To remove names
+names(die)<-NULL
+
+#Dimensions attribute is to transform an atomic vector into an n-dimensional array
+#To change die into a 2x3 (rowXcolumn) vector
+dim(die)<-c(2,3)
+#Use matrices or arrays to have more control
+#nrow=number rows, ncolumn=number columns, 
+#byrow=TRUE lets you fill the matrix by row instead of column
+m<-matrix(die,nrow=2,byrow=TRUE)
+#Array is like dimensions
+ar<-array(c(11:14,21:24,31:34),dim=c(2,2,3))
+
+hand1<-c("ace","king","queen","jack","ten","spades","spades","spades","spades","spades")
+dim(hand1)<-c(5,2)
+#Can also use matrix(hand1,nrow=5) or matrix(hand1,ncol=5)
+
+#Class is changed with changed dimensions. Describes format
+#Many functions treat object based on class attribute
+#Class won't always show when you run attributes, so run class()
+class(die)
+
+#My notes were deleted lol
+#Working with time (since 1/1/1970), data type is "POSIXct","POSIXt"
+now<-Sys.time()
+
+gender<-factor(c("Male","female","female","male"))
+#Use unclass to see info
+unclass(gender)
+as.character(gender)
+#See what data would be as _
+as.character(1)
+as.logical(1)
+as.numeric(FALSE)
+#Make a list
+list1<-list(100:130,"R",list(TRUE,FALSE))
+#Make a deck
+df<-data.frame(face=c("ace","two","six"),suit=c("clubs","clubs","clubs"),value=c(1,2,3))
+#USE Head Tails to see begnning ending of 
+head(deck)
+tail(deck,10)
+#To save files
+write.csv(deck,file="cards.csv",row.names=FALSE)
+
+#Extract value(s) (indexing) by writing the name followed by [,]
+#This works like ij notation in matrix algebra
+cards[1,1]
+cards[1,1:3]
+new<-cards[1,1:3]
+#Repeating numbers will return duplicates
+cards[c(1,1),1:3]
+#Add drop=FALSE to have a data frame instead of a vector
+cards[1:2,1,drop=FALSE]
+#Negative will return everything but what's in the []
+cards[-(2:50),1:3]
+#have a blank space to select all values in that dimension
+cards[1:5, ]
+#TRUE and FALSE can be used to select exact values
+cards[1,c(T,T,F)]
+rows<-c(T,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F)
+  cards[rows,]
+#Can ask for element by name
+cards[1,c("face","suit","value")]
+cards[ ,"value"]
+
+#Dealing a card
+deal<-function(cards){cards[1,]}
+#Shuffling the deck then dealing the card
+#List all 52 cards
+deck<-cards[1:52,]
+#The following switches the first and second row
+deck2<-cards[c(2,1,3:52),]
+#Generating a random collection of 52 integers
+random<-sample(1:52,size=52)
+#Use this function to draw cards in random order
+deck3<-cards[random,]
+#Combine these steps into 1 function
+shuffle<-function(cards){
+  random<-sample(1:52,size=52) 
+  cards[random,]}
+#To draw one random card:
+cards2<-shuffle(cards)
+deal(cards2)
+
+#Use $ to extract values from data frames and lists
+#DataFrame$ColumnName
+cards$value
+median(cards$value)
+#Use $ with elements of a list
+lst<-list(numbers=c(1,2),logical=TRUE,strings=c("a","b","c"))
+#lst[1] will return the first element of the list in list format. $ does it without list format
+lst$numbers
+#[[]] can be used if the list elements do not have names (returns just the values)
+lst[[1]]
