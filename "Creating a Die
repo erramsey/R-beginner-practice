@@ -1,0 +1,39 @@
+#"Creating a Die"
+#Rng that spits out 1-6
+die<-1:6
+
+#Creating two dice that can be re-rolled
+#without replacement, the second number cannot be the same as the first
+#bones is the argument. Default die is 1:6, but you can manually make it 1:9
+#example: roll2(bones=1:9)
+roll2<-function(bones=6){
+   dice<-sample(bones,size=2,replace=TRUE)
+   sum(dice)
+   }
+
+#Installing packages
+install.packages("ggplot2")
+#Load the package
+library("ggplot2")
+#Use replicate(number of repitions, thing to replicate) to replicate actions
+replicate(3,1+1)
+
+#Making graphs
+#Histogram
+qplot(rolls,bandwidth=1)
+#scatterplot
+qplot(x,y)
+
+#Help pages for functions: ?function
+?qqplot
+#When you want to look up a function but you've forgotten the name ??function
+??log
+
+#changing the probability of roll
+roll<-function(){
+  + die<-1:6
+  + dice<-sample(die,size=2,replace=TRUE,
+                 + prob=c(1/8,1/8,1/8,1/8,1/8,3/8))
+  + sum(dice)
+  + }
+#To see: rolls<-replicate(1000,roll())
