@@ -274,3 +274,49 @@ as.environment("package:stats")
   shuffle<-function(cards){
     random<-sample(1:52,size=52) 
     assign("deck",DECK[random,],envir=globalenv())}
+
+#Moving deck to an out-of-the-way location where it is not likely to be over-written
+#Store in runtime environment. Create a function that takes deck as an argument and saves a copy of deck as DECK
+#A function that saves its own copies of deck, deal, shuffle:
+   setup<-function(deck){
+    DECK<-deck
+    
+    DEAL<-function(){
+      card<-deck[1,]
+      assign("deck",deck[-1,],envir=globalenv())
+      card
+    }
+    SHUFFLE<-function(){
+      random<-sample(1:52,size=52) 
+      assign("deck",DECK[random,],envir=globalenv())
+    }
+    list(deal=DEAL,shuffle=SHUFFLE)
+   }
+   
+cards<-setup(deck)
+#We added in list to return DEAL and SHUFFLE functions as a list so we can use them
+#We can then make it so that the origin environment for deal shuffle are that runtime env
+   deal<-cards$deal
+  shuffle<-cards$shuffle
+#But this still updates deal and shuffle in the global env. We can change that so it'll only work with objects in the parent env
+  #Change env from global to parent
+  setup<-function(deck){
+    DECK<-deck
+    
+    DEAL<-function(){
+      card<-deck[1,]
+      assign("deck",deck[-1,],envir=parent.env(environment()))
+      card
+    }
+    SHUFFLE<-function(){
+      random<-sample(1:52,size=52) 
+      assign("deck",DECK[random,],envir=parent.env(environment()))
+    }
+    list(deal=DEAL,shuffle=SHUFFLE)
+  }
+  
+#So to summarize:
+  #1. The function setup contains copies of functions in the global server we don't want to lose
+  #2. We make the global data used in setup (cards) into a function that loops back to setup
+  #3. We make the global functions used inside setup into a function using the function setup and the function of the dataset
+  #4. (if you haven't already) update the env to parent.env(environment())
