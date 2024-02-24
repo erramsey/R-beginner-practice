@@ -1,0 +1,98 @@
+#Project 3: Slot Machine
+  get_symbols<-function(){
+    wheel<-c("DD","7","BBB","BB","B","C","0")
+    sample(wheel,size=3,replace=TRUE,
+           prob=c(0.03,0.03,0.06,0.1,0.25,0.1,0.52))
+  }
+
+#When working on complex tasks, break them into as many smaller tasks as you need to
+#Use concrete examples, and describe your solutions in English before converting to R
+#Ways of dividing a task
+  #1. Sequential steps
+    #For example, the play function
+       play <- function() {
+        # step 1: generate symbols
+        symbols <- get_symbols()
+        # step 2: display the symbols
+        print(symbols)
+        # step 3: score the symbols
+        score(symbols)
+       }
+  #2. Parallel cases
+    #Spot groups of similar cases within the task. Identify groups of input that 
+      #require different algorithms for one task and work out their algorithms one at a time
+    #For example, score function
+      #It will need to calculate the prize money one way if symbols contain three of a kind
+      #It will need to calculate a second way if the symbols are all bars
+      #It will need to calculate a third way if symbols do not contain 3 or bars
+       #Score will always use only one of the three above
+
+#Use if statements to link cases together in parallel (like score function)
+    #Structure: if(this){that}
+    if(num<0){
+      print("num is negative.")
+      num<-num*-1
+      print("now num is positive.")
+    }
+    #Must evaluate a single True/False statement
+       #Can use any or all statement to turn to T/F
+    
+#Use else statements to tell r what to do when statement is false
+    #Structure: if(this){Plan A} else{Plan B}
+       if(dec>=0.5){
+         a<-trunc(a)+1
+       } else{
+         a<-trunc(a)
+       }
+       #Note: trunc takes a number and returns only the part left of the decimal
+        # a-trunc(a) will give only decimal
+    #Multiple mutually exclusive cases:
+       if(a>b){
+         print("A wins!")
+       } else if (a<b){
+         print("B wins!")
+       } else {
+         print ("Tie.")
+       }
+    
+  #Here is a skeleton code for the final score function. 
+  #Like a flow-chart (if-then flow chart)
+       if ( # Case 1: all the same <1>) {
+         prize <- # look up the prize <3>
+         } else if ( # Case 2: all bars <2> ) {
+           prize <- # assign $5 <4>
+           } else {
+             # count cherries <5>
+             prize <- # calculate a prize <7>
+           }
+         # count diamonds <6>
+         # double the prize if necessary <8>
+  #Work on the subtasks one at a time
+    #Task 1. test if symbols are three of a kind
+      #Final score function will look like:
+        score<-function(symbols){
+          #calculate prize
+          prize
+        }
+      #symbols will be the output of get_symbols, a vector containing three character strings
+      #1. Create and test subtasks separately. Make a concrete example to test
+        #Make a vector called symbols to test
+        symbols<-c("7","7","7")
+        #Change symbols to test all scenarios
+        #Only combine subtasks after all work
+      #2. Try to describe how you will do the subtask in English. Be detailed
+        #'Test whether the three symbols are three of a kind' - can't think of anything 
+        #'Three symbols will be the same if the first symbol eqals the second equals the third'
+        #'A vector named symbols will contain three of the same symbol if the first element of 
+          #symbols is equal to the second element of symbols and the second element of symbols
+          #is equal to the third element of symbols.'
+        symbols<-c("7","7","7")
+        symbols[1]==symbols[2] & symbols[2]==symbols[3]
+        symbols[1]==symbols[2] & symbols[1]==symbols[3]
+        all(symbols==symbols[1])
+          #another method: length(unique(symbols)==1)
+          #symbols[1]==symbols[2] && symbols[2]==symbols[3]
+            #&& and || are like & | but will not evaluate the second test if the 
+            #first test makes the results clear. (if 1=/=2 it won't test 2=3)
+            #Can only handle a single logical test on each side
+        
