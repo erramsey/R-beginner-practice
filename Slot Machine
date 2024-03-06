@@ -95,4 +95,199 @@
             #&& and || are like & | but will not evaluate the second test if the 
             #first test makes the results clear. (if 1=/=2 it won't test 2=3)
             #Can only handle a single logical test on each side
+  #Now: how to use logical and Boolean operators to write a test to find if symbols has a type of bar
+        symbols[1] == "B" | symbols[1] == "BB" | symbols[1] == "BBB" &
+          symbols[2] == "B" | symbols[2] == "BB" | symbols[2] == "BBB" &
+          symbols[3] == "B" | symbols[3] == "BB" | symbols[3] == "BBB"
+        #Another way: You can usually replace multiple | with %in%
+        all(symbols %in% c("B","BB","BBB"))
+      #So put in script: 
+        same<-symbols[1] == symbols[2] && symbols[2] == symbols[3]
+        bars<-symbols %in% c("B","BB","BBB")
         
+        if(same){
+          prize<- #look up prize
+        } else if (all(bars)) #etc.
+        #Bars is split into bars and all(bars) so it can read with function and 
+        #object names conveying what they do
+          
+  #Task 2: assign a prize for symbols
+    #Different symbols give different prizes
+    #Possible to do many a long list of if, else if, but this isn't the best way
+    #Lookup tables
+        #A use of subsetting
+          #Create a vector that captures the exact relationship between symbols and prizes
+          payouts<-c("DD"=100,"7"=80,"BBB"=40,"BB"=25,"B"=10,"C"=10,"0"=0)
+          #Now by subseting the vector with the symbol's name you can extract the correct prize
+          payouts["DD"]
+          #Use unname function to leave out symbol name
+          unname(payouts["DD"])
+          #This vector payouts is a lookup table. Subset:
+          payouts[symbols[1]]
+          #When 3 of a kind you only need to know the first one
+    #Now the code is:
+          same<-symbols[1] == symbols[2] && symbols[2] == symbols[3]
+          bars<-symbols %in% c("B","BB","BBB")
+          
+          if(same){
+            payouts<-c("DD"=100,"7"=80,"BBB"=40,"BB"=25,"B"=10,"C"=10,"0"=0)
+            prize<-unname(payouts[symbols[1]])
+          } else if (all(bars)) 
+    #The next part is easy to assign:
+            prize<-5
+          else {#count cherries}
+    #The next part is to assign the cherries. 
+    #You must know how many cherries are in symbols before calculating prize
+            cherries<-sum(symbols == "C")
+            #We'll do the same thing for diamonds
+            diamonds<-sum(symbols=="DD")
+    #Next assign pay for cherries
+    #The case of three cherries is done earlier in the IF ELSE chain so we only need 1 or 2
+    #Use subsetting again. 0 for 0 cher, 1, 2 cher
+            prize<-c(0,2,5)[cherries+1]
+              #Cherries+1 so that 1 2 3 gives the value for 0 1 2 cherries
+#NOTE:You can usually use lookup tables to avoid If trees. Do so.
+  #Use If if each branch runs different code. Lookup if only assigns different values
+  #To change from If to lookup:
+     #1. Identify values to be assigned and store them in a vector
+     #2. Identify selection criteria used in the condition of the If tree
+            #If the conditions use characters, give the vector names and use name-based subsetting
+            #If the conditions use integers, use integer-based subsetting
+    
+    #Final task: double prize once for every diamond present
+    #0 D: prize*1=2^0; 1 D: prize*2=2^1; 2 D: prize*4=2^2; 3D: prize*8=2^3
+    #The number of diamonds is 2^(n diamonds)
+            prize*2^(diamonds)
+#Now we have the final script:
+            score <- function(symbols) {
+              # identify case
+              same<-symbols[1] == symbols[2] && symbols[2] == symbols[3]
+              bars<-symbols %in% c("B","BB","BBB")
+              
+              # get prize
+              if(same){
+                payouts<-c("DD"=100,"7"=80,"BBB"=40,"BB"=25,"B"=10,"C"=10,"0"=0)
+                prize<-unname(payouts[symbols[1]])
+              } else if (all(bars)){ 
+                prize<-5
+              } else {
+              cherries<-sum(symbols == "C")
+              prize<-c(0,2,5)[cherries+1]
+              }
+              
+              # adjust for diamonds
+              diamonds<-sum(symbols=="DD")
+              prize*2^(diamonds)
+            }
+    #Make into a function by highlighting and do code->extract function on menu (or manually)
+#The play function
+            play<-function(){
+              symbols<-get_symbols()
+              print(symbols)
+              score(symbols)
+            }
+            
+#S3 System
+  #Governs how R handles objects of different classes. Objects have an S3 class that functions can look up.
+  #Attributes: pieces of extra info that are given a name and appended to an object
+      #Don't affect value but stick as metadata used to handle the object
+      #ex. row and column name, class name
+      #To see attribute:
+            attributes(deck)
+      #Functions that work with attributes: names, dim, class, row.names, levels, etc.
+      #Add any attribute you want to a function (R usually ignores)
+            #Use attr to add a general attribute or look up value of attribute
+            attr(one_play,"symbols")<-c("B","0","B") #attribute name is symbols
+            attributes(one_play)
+      #If you give it a name that an R function looks for (like names or class) it will not be ignored
+      #ex. Modify play to return a prize that shows symbols associated with it
+            #Create a new version of play by assigning an attribute to the output of score(symbols)
+            play<-function(){
+              symbols<-get_symbols()
+              prize<-score(symbols)
+              attr(prize,"symbols")<-symbols
+              prize
+            }
+     #Use the structure function to generate prize and set attributes in one step
+        #First object: R object or set of values, remaining:named attributes for structure to add to object
+          play<-function(){
+            symbols<-get_symbols()
+            structure(score(symbols),symbols=symbols)
+          }  
+    #Uses of attribute
+       #Write functions that lookup and use the attribute
+        #ex. the following looks up one_play's attr and use it to display in a pretty manner 
+          slot_display<-function(prize){
+            #Look up the value of the symbols attribute and save it as an object named "symbols"
+            symbols<-attr(prize,"symbols")
+            #collapse three-string symbols into a single-character 
+            #paste colllapses a vector of character strings into a single string when use the collapse argument
+              #The value in collapse is used to separate the formerly distinct strings
+            symbols<-paste(symbols,collapse=" ")
+            #combine symbol with the value for prize as a character string
+            #sep argument to combine separate objects into a character string
+              #value of sep argument used to separate the inputs in the new string
+            #\n is special escape sequence for a new line (ie, return or enter)
+            string<-paste(symbols,prize,sep="\n$")
+            #display character string in console without quotes
+            #cat is like print but does not surround output with " "
+              #also replaces \n$ with a new line or line break
+            cat(string)
+          }
+      #slot_display(play())
+          
+  #Generic functions
+      #Like print (vs the function we use above to manually clean up display)
+      #Print is used each time r displays a result in the console window
+      #Displays differently based on different classes
+  #Methods
+      #print uses UseMethod to determine how to print
+      #UseMethod: a function that examines the class of the input that you provide for print
+        #It then passes all arguments to a new function to handle that class of input
+        #ex. print a POSIXct object and UseMethods passes it to print.POSIXct
+          #a factor object goes to print.factor
+          #these are both called 'methods' of print
+      #Check which methods exist for a generic function
+          methods(print)
+#S3: the system of generic functions, methods, and class-based dispatch
+
+#Method dispatch
+    #S3 method has a 2-part name: function method works with and class
+        #ex. print.function (the print method that works with functions), summary.matrix
+    #UseMethod searches for the S3-style name
+        #Use this by writing function and giving it a S3-style name
+          #give one_play a class
+          class(one_play)<-"slots"
+          #Write an S3 print method for the +slots+ class (will display contents when printed)
+          print.slots<-function(x,...){
+            cat("I'm using the print.slots method")
+          }
+          #remove the print method (will replace with better)
+          rm(print.slots)
+    #If a object has multiple classes, UseMethod will first look for a method that matches the first class listed
+    #If you give print an object whose class or classes does not have a print method, UseMethod calls print.default
+          #adding a new print method for the slots class
+          #It's important that it's called print.slots so UseMethod can find it
+          print.slots<-function(x,...){slot_display(x)}
+          #Result: objects of the class +slots+ (only) will be desplayed using slots_display
+          
+          #Editing play function so it assigns the +slots+ class
+            play<-function(){
+            symbols<-get_symbols()
+            structure(score(symbols),symbols=symbols,class="slots")
+          }  
+  #Use S3 system to make a new class of objects
+        #1. Choose a name for your class
+        #2. Assign each instance of your class a +class+ attribute
+        #3. Write class methods for any generic function likely to use objects of your class
+            #That's a lot of methods
+            #call methods on a class like so:
+            methods(class="factor")
+      #R drops attributes when it combines objects into a vector ex. c(play1,play2)
+      #Also dropped when you subset the object ex. play1[1]
+        #You can search for and examine the class-specific method UseMethod uses directly
+          #Will be function with format <function.class> or <function.default>
+        #Use methods function to see methods associated with function or class
+  #S4 and R5 also create class specific behavior. More difficult but has safeguards
+     
+#Loops                           
