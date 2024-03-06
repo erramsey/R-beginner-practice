@@ -1,0 +1,294 @@
+#An overview of the main tools: importing, tidying, transforming, visualizing data
+
+#Using ggplot2 to visualize data
+#A data frame is a rectangular collection of variables (column) and observation (row)
+  #Type the name of the data frame in the console and R will print a preview of the contents
+    #In this example, we type 
+      penguins
+    #This shows the first 8 columns
+      #Use glipse to see all variables and the first few obs of each variable
+        glimpse(penguins)
+      #Use view to open an interactive data viewer
+        View(penguins)
+  #You can open the help page ?penguins to see more info
+#Creating a ggplot
+    #Begin plot with the function ggplot(), defining plot object to add layers to
+        ggplot(data=penguins)
+        #Creates an empty graph
+    #Tell ggplot how info will be visually represented
+        #The mapping argument: how variables in dataset are mapped to visual properies(aesthetics)
+          aes()
+          #Specify which variables to map into x and y axes
+          ggplot(
+            data=penguins,
+            mapping=aes(x=flipper_length_mm,y=body_mass_g)
+          )
+          #Result: x and y axis but no data. Need to articulate how to represent obs from data
+        #Define a geom: the geometrical object that a plot uses to represent data
+          #ex. (geom_bar()), (geom_line()), (geom_boxplot()), (geom_point()) for scatter
+          ggplot(
+            data=penguins,
+            mapping=aes(x=flipper_length_mm,y=body_mass_g)
+          ) +
+            geom_point()
+    #Adding aesthetics and layers
+        #Represent species with different colored points
+          ggplot(
+            data=penguins,
+            mapping=aes(x=flipper_length_mm,y=body_mass_g,color=species)
+          ) +
+            geom_point()
+        #Next add a smooth line displaying the relationship per species
+          ggplot(
+            data=penguins,
+            mapping=aes(x=flipper_length_mm,y=body_mass_g,color=species)
+          ) +
+            geom_point() +
+            geom_smooth(method="lm")
+            #The method "lm" means a linear model best fit line
+        #We can change the three lines to one for all points
+        #Aesthetics defined in ggplot(), at global level, are passed down to geom (are default)
+        #But geom can also have mapping
+        #Solution: put color by species in the geom
+            ggplot(
+            data=penguins,
+            mapping=aes(x=flipper_length_mm,y=body_mass_g)
+          ) +
+            geom_point(mapping=aes(color=species)) +
+            geom_smooth(method="lm")
+        #Have different shapes per species
+            ggplot(
+              data=penguins,
+              mapping=aes(x=flipper_length_mm,y=body_mass_g)
+            ) +
+              geom_point(mapping=aes(color=species, shape=species)) +
+              geom_smooth(method="lm")
+        #Improve labels using labs() function in a new layer
+        #labs() arguments: title, subtitle, x, y, color, shape, scale_color_colorblind()
+            ggplot(
+              data=penguins,
+              mapping=aes(x=flipper_length_mm,y=body_mass_g)
+            ) +
+              geom_point(mapping=aes(color=species, shape=species)) +
+              geom_smooth(method="lm") +
+              labs(
+                title="Body mass and flipper length",
+                subtitle="Dimensions for Adelie, Chinstrap, and Gentoo Penguins",
+                x="Flipper length (mm)", 
+                y="Body mass (g)",
+                color="Species",
+                shape="Species"
+              ) +
+              scale_color_colorblind()
+#Exercises
+    #1. How many rows: 344, columns: 8
+    #3. Make a scatterplot of bill_depth_mm vs. bill_length_mm.
+            ggplot(
+              data=penguins,
+              mapping=aes(x=bill_length_mm, y=bill_depth_mm, color=species)
+            ) +
+              geom_point() +
+              geom_smooth() +
+            labs(
+              title="Exercise 3"
+            )
+    #4. 
+            ggplot(
+              data=penguins,
+              mapping=aes(x=bill_depth_mm, y=species)
+            ) +
+              geom_point() +
+              geom_smooth() +
+              labs(
+                title="Exercise 4"
+              )
+            #This might be better as a bar graph
+    #5. Does not tell what to do x and y
+    #6. na.rm removes missing values na.rm=TRUE or FALSE. default is false
+            ggplot(
+              data=penguins,
+              mapping=aes(x=bill_depth_mm, y=species)
+            ) +
+              geom_point(na.rm=TRUE) +
+              labs(
+                title="Exercise 4"
+              )
+    #7. Add a caption
+            ggplot(
+              data=penguins,
+              mapping=aes(x=bill_depth_mm, y=species)
+            ) +
+              geom_point(na.rm=TRUE) +
+              labs(
+                caption="Data comes from the palmerpenguins package"
+              )
+    #8. 
+            ggplot(
+              data=penguins,
+              mapping=aes(x=flipper_length_mm, y=body_mass_g))  +
+              geom_point(mapping=aes(color=bill_depth_mm)) +
+              #se for confidence interval, no method="lm" bc we don't want a straight line
+              geom_smooth(se=TRUE)
+    #9. 
+          ggplot(
+            data = penguins,
+            # the x and y axis, color divided by island
+            mapping = aes(x = flipper_length_mm, y = body_mass_g, color = island)
+            ) +
+            #scatter plot
+        geom_point() +
+            #se displays confidence interval (smooth interval) when TRUE
+            #line will be three, one per island
+        geom_smooth(se = FALSE)
+    #10. The following two graphs are identical. bc in 1 there are no conditions to pass down
+          ggplot(
+            data = penguins,
+            mapping = aes(x = flipper_length_mm, y = body_mass_g)
+          ) +
+            geom_point() +
+            geom_smooth()
+          
+          ggplot() +
+            geom_point(
+              data = penguins,
+              mapping = aes(x = flipper_length_mm, y = body_mass_g)
+            ) +
+            geom_smooth(
+              data = penguins,
+              mapping = aes(x = flipper_length_mm, y = body_mass_g)
+            )
+
+#ggplot2 calls
+    #More concise expression of ggplot2 code
+        #Makes it easy to see what's different between plots (important)
+        #The concise version is:
+          ggplot(penguins,aes(x = flipper_length_mm, y = body_mass_g)) +
+          geom_point()
+        #also
+          penguins |>
+            ggplot(aes(x = flipper_length_mm, y = body_mass_g)) +
+            geom_point()
+
+#Visualizing distributions
+    #How done depends on if categorical or numerical
+        #Categorical
+           #Bar chart
+           ggplot(penguins,aes(x=species)) +
+             geom_bar()
+              #Re-order bars based on frequencies with fct_infreq
+              #Transform variable into a factor and reorder by levels of that factor
+              ggplot(penguins,aes(x=fct_infreq(species))) +
+                geom_bar()
+        #Numerical
+            #Histogram
+              ggplot(penguins,aes(x=body_mass_g)) +
+                geom_histogram(binwidth=200)
+                #Change width of intervals with binwidth. Always test different widths to reveal trends
+            #Density plot
+              ggplot(penguins,aes(x=body_mass_g)) +
+                geom_density()
+  #Exercises
+      #1. 
+              ggplot(penguins,aes(y=species)) +
+                geom_bar()
+      #2. First: outline red. Second: all red
+              ggplot(penguins, aes(x = species)) +
+              geom_bar(color = "red")
+              
+              ggplot(penguins, aes(x = species)) +
+                geom_bar(fill = "red")
+      #3. bins changes the interval width
+      #4. 
+             ggplot(diamonds,aes(x=carat))+
+               geom_histogram(bins=25)
+             
+#Visualizing relationships
+    #To visualize a relationship, need at least 2 var mapped to aesthetics of a plot
+        #Numerical and categorical variable
+             #Side-by-side Boxplot
+              ggplot(penguins,aes(x=species,y=body_mass_g)) +
+                geom_boxplot()
+             #Density plot
+              ggplot(penguins,aes(x=body_mass_g,color=species)) +
+                geom_density(linewidth=0.75)
+                #linewidth to make the lines more visible
+              ggplot(penguins,aes(x=body_mass_g,color=species,fill=species)) +
+                geom_density(alpha=0.5)
+                #fill to fill bellow line
+                #alpha to add transparency (0 to 1)
+      #Terminology: map if we want visual based on value, otherwise set
+        #Two categorical variables
+            #Stacked bar plots
+              ggplot(penguins,aes(x=island,fill=species))+
+                geom_bar()
+              #Change to relative frequency plot
+              ggplot(penguins,aes(x=island,fill=species))+
+                geom_bar(position="fill")
+        #Two numerical variables
+             #Scatterplots
+              ggplot(penguins,aes(x=flipper_length_mm,y=body_mass_g))+
+                geom_point()
+             #Smooth curves (best added to scatterplot)
+                geom_smooth()
+        #Three or more variables
+              #Incorperate more var by mapping them to additional aesthetics
+                geom_point(aes(color=species,shape=island))
+              #Split plot into facets (subplots)
+                ggplot(penguins,aes(x=flipper_length_mm,y=body_mass_g))+
+                  geom_point(aes(color=species,shape=species)) +
+                  facet_wrap(~island)
+    #Exercises
+        #1. Find out if categorical or numeric var in dataset: ??mpg to examine
+                class(mpg$variable)
+        #2. 
+                ggplot(mpg,aes(x=displ,y=hwy)) +
+                 geom_point(aes(color=year,size=cyl))
+                ggplot(mpg,aes(x=displ,y=hwy)) +
+                  geom_point(aes(color=class,size=cyl))
+            #categorical var have distinct color/size while numeric have a range
+        #3. Mapping linewidth does not work for a scatterplot. P bc no line to alter
+                ggplot(mpg,aes(x=displ,y=hwy)) +
+                  geom_point(aes(linewidth=year))
+        #5. 
+                ggplot(penguins,aes(x=bill_length_mm,y=bill_depth_mm))+
+                  geom_point(aes(color=species))
+                
+                ggplot(penguins,aes(x=bill_length_mm,y=bill_depth_mm))+
+                  geom_point()+
+                  facet_wrap(~species)
+        #6. Gives two separate legends, one for color and one for shape
+                ggplot(
+                  data = penguins,
+                  mapping = aes(
+                    x = bill_length_mm, y = bill_depth_mm, 
+                    color = species, shape = species
+                  )
+                ) +
+                  geom_point() +
+                  labs(color = "Species")
+                #to combine: 
+                ggplot(penguins,aes(x = bill_length_mm, y = bill_depth_mm))+
+                geom_point(aes(color=species,shape=species))
+         #7. Two relative frequency plots.
+              #First frequency of species by island. Second freqency of island by species
+                ggplot(penguins, aes(x = island, fill = species)) +
+                  geom_bar(position = "fill")
+                ggplot(penguins, aes(x = species, fill = island)) +
+                  geom_bar(position = "fill")
+                
+#Saving plots
+ #save as image to use elsewhere
+ #ggsave() will save the plot most recently created to disc
+              ggplot(penguins, aes(x = species, fill = island)) +
+                geom_bar(position = "fill")       
+              ggsave(filename="penguin-plot.png")
+      #saves to working directory
+      #If you don't specify width and height, it's taken from the dimensions of the current plotting device
+           #specify for reproducable code
+  #But reccomend saving using Quarto, a reproducable authoring system that lets you interleave code
+  #Exercise: the second plot is saved bc most recent created
+              ggplot(mpg, aes(x = class)) +
+                geom_bar()
+              ggplot(mpg, aes(x = cty, y = hwy)) +
+                geom_point()
+              ggsave("mpg-plot.png")
