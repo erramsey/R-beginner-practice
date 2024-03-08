@@ -1,0 +1,336 @@
+#Data transformation
+
+#To specify the package a function comes from: packagename::functionname()
+  nycflights13::flights
+#tibble vs. data frame
+  #tibble is a type of data frame. It prints differently. For large dataset
+  #To see all data
+    View(flights)
+    print(flights,width=Inf)
+    glimpse(flights)
+    #Var name followed by type of var
+      #int=integer, dbl=double(real number), chr=character, dttm=date-time
+    
+#dplyr basics
+  #All dplyr verbs have these in common:
+    #1. The first argument is always a data frame
+    #2. The subsequent arguments typically describe which columns to operate on, using var names (w/out quotes)
+    #3. The output is always a new data frame
+  #Use the pipe |> to combine verbs (each verb does only one thing)  
+    x |> f(y) = f(x,y)
+    x |> f(y) |> g(z) = g(f(x,y),z)
+    #ex.
+    flights |>
+      filter(dest == "IAH") |> 
+      group_by(year, month, day) |> 
+      summarize(
+        arr_delay = mean(arr_delay, na.rm = TRUE)
+      )
+  #Verbs are organized into groups based on location: rows, columns, groups, tables
+    
+#Rows
+  #filter() changes which rows are present without changing order based on values of columns
+    #filter(data frame, conditions that must be true to keep the row)
+      flights |>
+        filter(dep_delay > 120)
+      #Can also use < >= <= == != , & or to combine conditions, "and" (both) or | (either)
+        filter(month==1 & day==1)
+        filter(month==1|month==2)
+        filter(month %in% c(1,2))
+          # %in% combines == |, keeps rows where var equals value to right
+      #To save results use <-
+        jan1<-flights |>
+          filter(month==1&day==1)
+  #arrange() changes the order of the rows without changing which are present (based on col values)
+    #If 2+ col names, each additional col is used to break ties in preceeding col
+        flights |>
+          arrange(year,month,day,dep_time)
+    #Use desc() on a col inside of arrange() to re-order in descending order
+        flights |>
+          arrange(desc(dep_delay))
+  #distinct() finds rows with unique values and can optionally modify the columns
+    #Remove duplicate rows, if any
+        flights|>
+          distinct()
+    #Find all unique origin and destination pairs
+        flights|>
+          distinct(origin,dest)
+    #If you want to keep other col when filtering unique rows, use .keep_all=TRUE
+        flights|>
+          distinct(origin,dest,.keep_all = TRUE)
+    #Distinct keeps only the first instance and discards the rest
+    #To find number of occurrences, use count() instead. Use sort=TRUE to arrange in descending order
+        count(origin, dest, sort=TRUE)
+
+#Exercises
+    #1. 
+        flights|>
+          filter(arr_delay>=120) #2 or more hours (it's in minutes)
+        dest=="IAH" | dest=="HOU"
+          dest %in% c("IAH", "HOU")
+        carrier=="UA" | carrier=="AA" | carrier=="DL"
+        month==7 | month==8 | month==9
+          month %in% c(7,8,9)
+          month %in% 7:9
+          month >= 7, month <= 9
+        arr_delay>120 & dep_delay<0 #arr delay greater than 2 and didn't leave late
+          arr_delay>120, dep_delay<0
+        dep_delay>60 & arr_delay<= -30 #left 1 hr late but made up by at least half an hour
+    #2. 
+        flights|>
+          arrange(dep_delay,time_hour)
+    #3. Sort to find the fastest flights (hint, include a math calculation)
+        flights|>
+          arrange(arr_time-dep_time)
+    #4. Was there a flight on every day of 2013?
+        flights|>
+          distinct(2013,month,day)
+    #5. Which flights traveled farthest? shortest?
+        flights|>
+          arrange(desc(distance))
+        flights|>
+          arrange(distance)
+    #6. Does it matter what order you use filter() arrange() in if you use both?
+        #Yes. filter then arrange is less work
+      #To see summary of statistics  
+        summary(flights$dep_time)
+        
+#Columns
+    #mutate() creates new columns derived from existing columns
+        flights|>
+          mutate(
+            gain=dep_delay-arr_delay,
+            speed=distance/air_time*60
+          )
+        #Columns are added to right. Use .before to add them to the left side
+        flights|>
+          mutate(
+            gain=dep_delay-arr_delay,
+            speed=distance/air_time*60,
+            .before=1
+          )
+          #the . shows that it's an argument to the function 
+        #.after can also be used
+        #Both before and after can be used w a variable name
+        flights|>
+          mutate(
+            gain=dep_delay-arr_delay,
+            speed=distance/air_time*60,
+            after=day
+          )
+        #Use .keep to determine which variables to keep
+        #The argument used specifies that we only keep the col involved or created in the mutate() step
+        flights|>
+          mutate(
+            gain=dep_delay-arr_delay,
+            hours=air_time/60,
+            gain_per_hour=gain/hours,
+            .keep="used"
+          )
+    #select() changes which columns are present 
+        flights|>
+          select(year,month,day)
+        flights|>
+          select(year:day)
+        #select all columns except those from year to day (yr day not selected)
+        flights|>
+          select(!year:day)
+        #select all col that are characters
+        flights|>
+          select(where(is.character))
+        #Some helper functions:
+          starts_with("abc")
+          ends_with("xyz")
+          contains("ijk")
+          num_range(x,1:3) #matches x1 x2 x3
+        #you can rename var as you select them
+          flights|>
+            select(tail_num=tailnum) #new var on left, old on right
+    #rename() 
+        flights|>
+          rename(tail_num=tailnum)
+        #janitor::clean_names() can be used for automated cleaning
+    #relocate() changes the position of columns
+        #By default moves var to front
+        flights|>
+          relocate(time_hour,air_time)
+        #specify location with .before .after
+        flights|>
+          relocate(year:dep_time,.after=time_hour)
+    
+    #Exercises
+        #1. sched_dep_time-dep_time=dep_delay
+        #2. 
+        flights|>
+          select(flights, dep_time, dep_delay, arr_time, arr_delay)
+          select(flights, 4, 6, 7, 9) #select col numbers
+          select(flights, all_of(c("dep_time", "dep_delay", "arr_time", "arr_delay")))
+          select(flights, any_of(c("dep_time", "dep_delay", "arr_time", "arr_delay")))
+          select(flights, "dep_time", "dep_delay", "arr_time", "arr_delay")
+          select(starts_with("dep")|starts_with("arr"))
+          select(ends_with("time")|ends_with("delay"))
+          select(contains("_de")|contains("_tim"))
+          select(flights, matches("^(dep|arr)_(time|delay)$"))
+          variables <- c("dep_time", "dep_delay", "arr_time", "arr_delay")
+            select(flights, !!variables)
+          select(dep_time:arr_delay) #but also does two extra
+        #3. If select twice, it just shows the column once
+          select("month","month")
+          #the use is we can use select with everything, to change order
+          select(flights, arr_delay, everything())
+        #4. any_of selects var in character vector
+          flights|>
+            select(any_of(c("year","month","day","dep_delay","arr_delay"))
+        #5. The default of selection seems to ignore capitalization
+          flights|>
+            select(contains("TIME"))
+          #Change by adding ignore.case=FALSE
+          select(flights, contains("TIME", ignore.case = FALSE))
+      
+        #6. 
+          rename(arr_time_min=arr_time,.before=1)
+        #7.Why doesn't this work?
+          flights|>
+            select(tailnum)|>
+            arrange(arr_delay)
+          
+#The pipe
+  #Combining multiple verbs
+    #ex. you want to find the fastest flights to Houston's IAH airport
+        flights|>
+          filter(dest=="IAH") |>
+          mutate(speed=distance/air_time*60) |>
+          select(year:day,dep_time,carrier,flight,speed) |>
+          arrange(desc(speed))
+        
+#Groups
+  #group_by() divides dataset into gorups
+        flights|>
+          group_by(month)
+        #subsequent operations will now work "by month"
+        #Adds the grouped feature to the data frame, which changes the behavior of subsequent verbs
+  #summarize() reduces data frame to have a single row for each group
+      #compute the average departure delay by month:
+        flights|>
+          group_by(month)|>
+          summarize(
+            avg_delay=mean(dep_delay,na.rm=TRUE)
+          )
+        #na.rm to ignore missing values
+      #You can make any number of summaries in a single call to summarize
+      #n() returns the number of rows in each group
+        flights|>
+          group_by(month)|>
+          summarize(
+            avg_delay=mean(dep_delay,na.rm=TRUE),
+            n=n()
+          )
+  #slice_ functions allow you to extract specific rows within each group
+        #df |> slice_head(n=1) takes the first row from each group
+        #df |> slice_tail(n=1) takes the last row from each group
+        #df |> slice_min(x,n=1) takes the row with the smallest value of col x
+        #df |> slice_max(x,n=1) takes row with largest value of col x
+        #df |> slice_sample(n=1) takes one random row
+      #Vary n to select n number of rows
+      #instead of n use prop=0.1 to select (ex) 10% of rows in each group
+        #Following: flights most delayed upon arrival at destination
+        flights|>
+          group_by(dest)|>
+          slice_max(arr_delay,n=1)|>
+          relocate(dest)
+      #slice_min and slice_max keep tied values, so n=1 gives all rows with the highest value
+        #use with_ties=FALSE to get exactly one row per group
+      #this vs. summarize(): here you get the whole row(or rows) instead of a single summary statistic
+  #Grouping by multiple variables
+      #making a group for each date
+        daily<-flights|>
+          group_by(year,month,day)
+      #When summarizing, each summary peels off the last group
+        #you can use .groups="drop_last" to explicitly request this so it won't show a warning message
+        daily_flights<-daily|>
+          summarize(
+            n=n(),
+            .groups="drop_last"
+          )
+        #You can also change to "drop" (drop all grouping) or "keep" (preserve the same groups)
+  #Ungrouping
+        daily|>
+          ungroup()
+  #.by
+       #use .by argument group within a single operation
+        flights|>
+          summarize(
+            delay=mean(dep_delay,na.rm=TRUE),
+            n=n(),
+            .by=month
+          )
+        #multiple groups
+        flights|>
+          summarize(
+            delay=mean(dep_delay,na.rm=TRUE),
+            n=n(),
+            .by=c(origin,dest)
+          )
+        #.by isn't permanent, so you don't need to ungroup after
+  
+  #Example
+        #1. Which carrier has the worst average delays?
+          flights|>
+            group_by(carrier)|>
+            summarize(
+              total_delay=mean(dep_delay+arr_delay,na.rm=TRUE),
+              n() )|>
+            arrange(desc(total_delay))
+        #2. Flights that are most delayed upon departure from each destination
+          #Most departure delayed flights from each destination (top 5)
+          flights|>
+            group_by(dest)|>
+            arrange(dest,desc(dep_delay))|>
+            slice_head(n=5)|>
+            relocate(dest,dep_delay) #Put dest, dep_delay at front
+        #3. How do delays vary over the course of a day? (Illustrate with a plot)
+          flights|>
+            group_by(hour)|>
+            summarize(
+              total_delay=mean(dep_delay,na.rm=TRUE))|>
+            ggplot(
+              aes(x=hour,y=total_delay))+
+              geom_smooth()
+        #4. What happens if you supply a negative n to slice_min() and friends?
+          flights|>
+            group_by(day)|>
+            slice_min(dep_delay,n=-1)
+            #arranges the data frame in order, but doesn't actually slice the data
+        #5. count() is used to obtain counts, vs summary to obtain summary statistics
+          flights|>
+            count(origin,dest,sort=TRUE)
+        #6. 
+          df<-tibble(
+            x=1.5,
+            y=c("a","b","a","a","b"),
+            z=c("K","K","L","L","K")
+          )
+          #group_by(y) will result in a normal table x y z format
+            #the grouping will be used on subsequent operations, but you don't see it
+          #arrange(y) will rearrange the order aaabb
+          #group_by(y)|>summarize(mean_x=mean(x)) will show one mena of x for each y (y=a, y=b)
+          #group_by(y,z)|>summarize(mean_x=mean(x)) will show mean by ak, al, bk
+          #group_by(y,z)|>summarize(mean_x=mean(x),.groups="drop") will be the same
+          #group_by(y,z)|>mutate(mean_x=mean(x))
+            #summarize results in only the new column(s) made, mutate adds to existing columns
+  
+#Case study: aggregates and sample size
+    #When doing aggregation, include a count n()
+        #Makes sure you aren't drawing conclusions based on small data
+          batters<-Lahman::Batting|>
+            group_by(playerID)|>
+            summarize(
+            performance=sum(H,na.rm=TRUE)/sum(AB,na.rm=TRUE),
+             n=sum(AB,na.rm=TRUE)
+            )
+          #Results: lower n has higher variation, more at batts has higher performance
+          batters|>
+            filter(n>100)|>
+            ggplot(aes(x=n,y=performance))+
+            geom_point(alpha=1/10)+
+            geom_smooth(se=FALSE)
