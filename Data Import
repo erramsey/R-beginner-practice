@@ -1,0 +1,183 @@
+#Data Import
+
+#Reading data from a file
+  #CSV (comma separated values)
+    students <- read_csv("data/students.csv")
+      #File is called students.csv and it lives in the data folder
+    #To download file:
+    students <- read_csv("https://pos.it/r4ds-students-csv")
+  #After reading in data, the first step is to transform to make it easier to work with
+    #Examine the students dataset.
+      #First make it so that N/A and spaces are recognized as na
+        students <- read_csv("https://pos.it/r4ds-students-csv", na = c("N/A",""))
+      #Columns 'Student ID' and 'Full Name' are surrounded by ' bc they contain spaces
+        students |>
+          rename(
+            student_id = 'Student ID',
+            full_name = 'Full Name'
+          )
+        #Alt method:
+        students |>
+          janitor::clean_names()
+      #mean_plan is a categorical variable with a known set of possible values. It should be a factor
+        students |>
+          janitor::clean_names() |>
+          mutate(meal_plan = factor(meal_plan))
+      #Change age to numeric var and 'five' to 5
+        students |>
+          janitor::clean_names() |>
+          mutate(
+            meal_plan = factor(meal_plan),
+            age = parse_number(if_else(age == "five", "5", age))
+          )
+          #if_else(test[a logical vector], result when test = TRUE, result when test = FALSE)        
+    #read_csv can read text strings you've created and formatted like a csv
+        read_csv(
+          "a,b,c
+          1,2,3
+          4,5,6"
+        )
+      #Use skip = n to skip the first n lines or use comment = "#" to drop all linese that start with #
+        read_csv(
+          "The first line
+          The second line
+          x,y,z
+          1,2,3",
+          skip = 2
+        )
+        read_csv(
+          "# A comment to skip
+          x,y,z
+          1,2,3",
+          comment = "#"
+        )        
+      #Use col_names = FALSE if there are no column names
+        read_csv(
+          "1,2,3
+          4,5,6",
+          col_names = FALSE
+        )
+      #You can also pass col_names a character vector that will be used as col names
+        read_csv(
+          "1,2,3
+          4,5,6",
+          col_names = c("x", "y", "z")
+        )
+
+#Other file types
+  #read_csv2() reads semicolon-separated files
+  #read_tsv() reads tab-delimited files
+  #read_delim() reads files with any delimiter, trying to auto guess
+  #read_fwf() reads fixed_width files
+    #fwf_widths() or fwf_positions() to specify fields by widths or positions
+  #read_table() reads a variation of fixed-width files where columns are separated by white space
+  #read_log reads Apache-style log files
+        
+#Exercises
+  #1. | delimited would be read_delim(delim="|")
+  #4. 
+        read_csv("x,y\n1,'a,b'", quote = "\'")
+  #5. What's wrong with the following?
+        read_csv("a,b\n1,2,3\n4,5,6")
+        read_csv("a,b,c\n1,2\n1,2,3,4")
+        read_csv("a,b\n\"1")
+        read_csv("a,b\n1,2\na,b")
+        read_csv("a;b\n1;3")
+  #6. Practice referring to non-syntactic names in the following data frame by:
+        #Extracting the variable called 1.
+          annoying |>
+            select(`1`)
+        #Plotting a scatterplot of 1 vs. 2.
+          #ggplot(annoying,aes(x = 1, y = 2)) + 
+            #geom_point()
+        #Creating a new column called 3, which is 2 divided by 1.
+          annoying |>
+            mutate(`3` = `2`/`1`)
+        #Renaming the columns to one, two, and three.
+          annoying |>
+            mutate(`3` = `2`/`1`) |>
+            rename(
+              "one" = `1`,
+              "two" = `2`,
+              "three = `3`
+             )
+    
+#Controlling column types
+  #Column type is guessed by program
+  #Most common failure from unexpected values, usually missing values not NA
+    #Ex. if NA is . then it reads as character column
+    #Tell readr that x is numeric
+      df <- read_csv(
+        simple_csv,
+        col_types = lists(x = col_double()) #takes a named list where the names match the col names in the CSV
+      )
+    #Result is an error. Going to the error, we see that it's because theres a .
+    #Now we know we can set na = "."
+      read_csv(simple_csv, na = ".")
+      
+  #Column types
+    #col_logistical(): reads logisticals
+    #col_double(): reads real numbers
+    #col_integer()
+    #col_character(): good to use on phone number, SSN, credit card number (things you don't do math on)
+    #col_factor(): create factors
+    #col_date(), col_datetime()
+    #col_number(): ignores non-numeric components, good for currencies
+    #col_skip(): skips a column so it's not included in the result, useful for speeding up
+    
+    #Can override default column by switching from list() to cols() and specifying .default:
+      another_csv <- "
+      x,y,z
+      1,2,3"
+      
+      read_csv(
+        another_csv,
+        col_types = cols(.default = col_character())
+      )
+    #cols_only() reads in only the columns you specify
+      read_csv(
+        another_csv,
+        col_types = cols_only(x = col_character())
+      )
+      
+#Reading data from multiple files
+  #For example, you have sales data for multiple months.csv. You can read them in at once and stack together
+    sales_files <- c("data/01-sales.csv", "data/02-sales.csv", "data/03-sales.csv")
+      read_csv(sales_files, id = "file")
+    #To read directly:
+    sales_files <- c(
+      "https://pos.it/r4ds-01-sales",
+      "https://pos.it/r4ds-02-sales",
+      "https://pos.it/r4ds-03-sales"
+    )
+    read_csv(sales_files, id = "file")
+  #The id argument adds a new column called file that ids the file the data came from
+  #If you have many files and you don't want to type all names in use list.function to find by matching pattern
+    sales_files <- list.files("data", pattern = "sales\\.csv$", full.names = TRUE)
+
+#Writing to a file
+  #As in, writing data back to disc
+  #write_csv, write_tsv(the data frame to save, the location to save it)
+    #You can also specify missing values, if you want to append to an existing file
+    write_csv(students, "students.csv")
+  #When you read that csv file back in the variable type info that you set up is lost
+  #There are two alternatives:
+    #1. write_rds() and read_rds(): store data in R's binary format RDS. readrds() saveRDS()
+    #2. The arrow package allows you to read and write parquet files
+      #Faster than rds and useable outside R
+      
+#Data entry
+  #Two functions to help you assemble a tibble by hand
+    #1. tibble() works by column
+      tibble(
+       x = c(1, 2, 3),
+        y = c("h", "m", "g"),
+        z = c(0.08, 0.83, 0.60)
+      )
+    #2. tribble() (transposed tibble) works by row
+      tribble(
+      ~x, ~y, ~z,
+      1, "h", 0.08,
+      2, "m", 0.83,
+      3, "g", 0.60
+      )
