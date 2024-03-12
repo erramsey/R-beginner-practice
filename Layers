@@ -1,0 +1,262 @@
+#Layers
+  #As in 'the layered grammer of graphics'
+
+#Aesthetic mappings
+  #Ex. the mpg dataset.
+    #Visualize the relationship between displ and hwy (# var) for various classes of cars
+      ggplot(mpg, aes(x = displ, y = hwy, color = class)) +
+        geom_point()
+      ggplot(mpg, aes(x = displ, y = hwy, shape = class)) +
+        geom_point()
+      #ggplot will only use 6 shapes at a time so 7+ groups go unplotted      
+    #Best not to map categorical variable to an ordered aesthetic (size or alpha) bc it implies a ranking that doens't exist
+      ggplot(mpg, aes(x = displ, y = hwy, alpha = class)) +
+        geom_point()
+    #Visual properties of geom can be set manually as an argument of geom function
+      ggplot(mpg, aes(x = displ, y = hwy)) +
+        geom_point(color="blue")
+      #color = blue, size = 1 (this is in mm), shape = 1 (there are 0 - 25 in R)
+    
+  #Exercises
+    #1. 
+      ggplot(mpg, aes(x = displ, y = hwy)) +
+        geom_point(color = "pink", shape = 17)
+    #2. Does not make blue because here color is for a third variable
+      ggplot(mpg) + 
+        geom_point(aes(x = displ, y = hwy, color = "blue"))
+    #3. Stroke is used to modify the width of the border. Works with shapes with a border of color
+    #4. Results in a classification for TRUE FALSE for the condition specified
+      ggplot(mpg, aes(x = displ, y = hwy, color = displ < 5)) +
+        geom_point()
+        
+#Geometric objects
+  #Every geom function takes a mapping argument, but not every aesthetic works in every geom
+    #Can't add a shape to a line, but can change line type
+      #Cars are separated into three lines based on their drv value
+    ggplot(mpg, aes(x = displ, y = hwy, shape = drv)) +
+      geom_smooth()
+    ggplot(mpg, aes(x = displ, y = hwy, linetype = drv)) +
+      geom_smooth()
+    #Overlaying the lines on top of raw data and then coloring everything according to drv
+    ggplot(mpg, aes(x = displ, y = hwy, color = drv)) +
+      geom_point() +
+      geom_smooth(aes(linetype = drv))
+    #Use the aesthetic to a categorical var to draw multiple objects
+    ggplot(mpg, aes(x = displ, y = hwy)) +
+      geom_smooth()
+    ggplot(mpg, aes(x = displ, y = hwy)) +
+      geom_smooth(aes(group=drv))
+    ggplot(mpg, aes(x = displ, y = hwy)) +
+      geom_smooth(aes(color = drv), sow.legend = FALSE)
+    #Mappings in a geom function are treated as local mappings for the layer. Will extend or overwrite the global for that layer only
+    #You can display different aesthetics in different layers
+    ggplot(mpg, aes(x = displ, y = hwy)) +
+      geom_point(aes(color = class)) +
+      geom_smooth()
+    #You can specify data for each layer
+    ggplot(mpg, aes(x = displ, y = hwy)) +
+      geom_point() + #Without this it only shows the colored red circle
+      geom_point(    #Without this it shows black dots, some with red circles
+        data = mpg |> filter(class == "2seater"),
+        color = "red"
+      ) +
+      geom_point(    #Without this it only shows black and red dots
+        data = mpg |> filter(class == "2seater"),
+        shape = "circle open", size = 3, color = "red"
+      )
+    
+  #Exercise 
+    #1. geom_line, geom_boxplot, geom_freqpoly, geom_line
+    #4. 
+    ggplot(mpg, aes(x = displ, y = hwy)) +
+      geom_point(size=5) +
+      geom_smooth(se = FALSE, size = 2)
+    ggplot(mpg, aes(x = displ, y = hwy, group = drv)) +
+      geom_smooth(se = FALSE, size=2) +
+      geom_point(size = 5) 
+    ggplot(mpg, aes(x = displ, y = hwy, color = drv)) +
+      geom_smooth(se = FALSE, size=2) +
+      geom_point(size = 5) 
+    ggplot(mpg, aes(x = displ, y = hwy)) +
+      geom_point(aes(color = drv, size=5)) +
+      geom_smooth(se = FALSE, size = 2)
+    ggplot(mpg, aes(x = displ, y = hwy, linetype = drv)) +
+      geom_point(aes(color = drv, size = 5)) + 
+      geom_smooth(se = FALSE, size=2) 
+    ggplot(mpg, aes(x = displ, y = hwy)) +
+      geom_point(size = 5, color = "white") +
+      geom_point(aes(color = drv))
+      
+#Facets
+  #facet_wrap() splits a plot into subplots that each display one subset of the data
+    ggplot(mpg, aes(x = displ, y = hwy)) +
+      geom_point() +
+      facet_wrap(~cyl)
+  #Use facet_grid to facet a plot with a combo of two variables
+    ggplot(mpg, aes(x = displ, y = hwy)) +
+      geom_point() +
+      facet_grid(drv ~ cyl)
+  #Use free_x/free_y to change so that each graph doesn't have the same x y scale   
+    ggplot(mpg, aes(x = displ, y = hwy)) +
+      geom_point() +
+      facet_grid(drv ~ cyl, scales = "free_y")
+
+  #Exercises
+    #It's basically facet_wrap but in different dimensions
+      ggplot(mpg) + 
+        geom_point(aes(x = displ, y = hwy)) +
+        facet_grid(. ~ cyl)
+    #nrow to change number rows, view change can be easier to see
+      ggplot(mpg) + 
+        geom_point(aes(x = displ, y = hwy)) + 
+        facet_wrap(~ class, nrow = 2)
+
+#Statistical transformations
+  #
+    ggplot(diamonds, aes(x = cut)) +
+      geom_bar()
+  #Some graphs calculate new values to plot
+    #Bar charts, histograms, frequency polygons: bin data then plot bin counts
+    #Smoothers: plot predictions from fitted model
+    #Boxplots: compute and show 5 number summary
+  #stat (statistical transformation) is the algorithm used to calculate new values for a graph
+  #Every geom has a default stat
+  #When to use a stat explicitly:
+    #1. To override the default stat
+      #ex. change bar chart from count to identify
+        diamonds |>
+          count(cut) |>
+          ggplot(aes(x = cut, y = n)) +
+          geom_bar(stat = "identity")
+    #2. To override the default mapping from transformed var to aesthetics
+      #ex. bar chart of proportions
+        ggplot(diamonds, aes(x = cut, y = after_stat(prop), group = 1)) +
+          geom_bar()
+    #3. To draw greater attention to the statistical transformation in your code
+      #ex. use stat_summary which summarizes the y values for each unique x to draw attention to the summary you're computing
+        ggplot(diamonds) +
+          stat_summary(
+            aes(x = cut, y = depth),
+            fun.min = min,
+            fun.max = max,
+            fun = median
+          )
+        
+  #Example
+    #1. re-write to use stat-summary
+        diamonds |>
+          group_by(cut) |>
+          summarize(
+            lower = min(depth),
+            upper = max(depth),
+            midpoint = median(depth)
+          ) |>
+          ggplot(aes(x = cut, y = midpoint)) +
+          geom_pointrange(aes(ymin =lower, ymax = upper))
+    #5. 
+        ggplot(diamonds, aes(x = cut, y = after_stat(prop))) + 
+          geom_bar()
+        #Add group = 1 so that marginal proportions of cut are plotted
+        ggplot(diamonds, aes(x = cut, y = after_stat(prop), group = 1)) + 
+          geom_bar()
+        
+        ggplot(diamonds, aes(x = cut, fill = color, y = after_stat(prop))) + 
+          geom_bar()
+        #Add group = color to get proportions of colors within each cut being plotted
+        ggplot(diamonds, aes(x = cut, fill = color, y = after_stat(prop), group = color)) + 
+          geom_bar()        
+        
+#Position adjustments
+  #You can color bar charts using either color aesthetic or fill aesthetic
+    ggplot(mpg, aes(x = drv, color = drv)) +
+      geom_bar()
+    ggplot(mpg, aes(x = drv, fill = drv)) +
+      geom_bar()
+  #If you map fill aesthetic to another variable the bars are automatically stacked
+    ggplot(mpg, aes(x = drv, fill = class)) +
+      geom_bar()
+  #Stacking is done automatically by position adjustment argument
+    #change with other options: 
+    #"identity": places objects exactly where it falls in context. In bars it overlaps
+    ggplot(mpg, aes(x = drv, fill = class)) +
+      geom_bar(alpha = 1/5, position = "identity")
+    #"fill": makes all stacked bars the same height
+    ggplot(mpg, aes(x = drv, fill = class)) +
+      geom_bar(position = "fill")
+    #"dodge": places overlapping objects directly beside one another
+      #Does not seem to actually do that ??
+    ggplot(mpg, aes(x = drv, fill = class)) +
+      geom_bar(position = "dodge")
+  #Overplotting: when many points overlap on a grid (scatterplot)
+    #Fix by setting the position argument to "jitter"
+    #Adds a small amount of random noise to each point. 
+    #Less accurate at small scales but more revealing at large scales
+      ggplot(mpg, aes(x = displ, y = hwy)) +
+        geom_point(position = "jitter")
+        #Shorthand for this is geom_jitter()
+    
+  #Exercises
+    #1. Add jitter to see true distribution
+      ggplot(mpg, aes(x = cty, y = hwy)) + 
+        geom_point()
+      ggplot(mpg, aes(x = cty, y = hwy)) + 
+        geom_point(position = "jitter")      
+    #2. They're identical
+      ggplot(mpg, aes(x = displ, y = hwy)) +
+        geom_point()
+      ggplot(mpg, aes(x = displ, y = hwy)) +
+        geom_point(position = "identity")
+    #3. In geom_jitter the displacement amount can be manually entered, width and height
+        ggplot(mpg, aes(x = displ, y = hwy)) +
+          geom_jitter(width = 20, height = 10)
+        #Note: units of height and width are not the same
+    #4. geom_count is used to count overlapping points
+        #Dot size is relative to how many overlap
+        #Points don't move but can cause overplotting
+    #5. Default is dodge2, which prevents overlap
+        ggplot(mpg, aes(x = drv, y = hwy)) +
+          geom_boxplot(position = "dodge2")
+        ggplot(data = mpg, aes(x = drv, y = hwy, colour = class)) +
+          geom_boxplot()
+          
+#Coordinate systems
+  #Cartesian: x and y. Default
+  #coord_quickmap(): aspect ratio for geographic maps
+    nz <- map_data("nz")
+        
+    ggplot(nz, aes(x = long, y = lat, group = group)) +
+      geom_polygon(fill = "white", color = "black")
+        
+    ggplot(nz, aes(x = long, y = lat, group = group)) +
+      geom_polygon(fill = "white", color = "black") +
+      coord_quickmap()
+  #coord_polar(): uses polar coordinates
+    bar <- ggplot(data = diamonds) + 
+      geom_bar(
+        mapping = aes(x = clarity, fill = clarity), 
+        show.legend = FALSE,
+        width = 1
+      ) + 
+      theme(aspect.ratio = 1)
+    
+    bar + coord_flip()
+    bar + coord_polar()
+    
+  #Exercises
+    #1. Use polar coordinates to turn a stacked bar chart into a pie chart
+      ggplot(mpg, aes(x = drv, fill = class)) +
+        geom_bar() +
+        coord_polar(theta = "y")
+
+      ggplot(mpg, aes(x = factor(1), fill = drv)) +
+        geom_bar(width = 1) +
+        coord_polar(theta = "y")
+        #theta = "y" maps y to the angle of each section
+    #3. 
+      ggplot(data = mpg, mapping = aes(x = cty, y = hwy)) +
+        geom_point() + 
+        geom_abline() +
+        coord_fixed()
+      #coord_fixed is for cartesian with fixed "aspect ratio". Units on x = units on y
+      #geom_abline: add reference lines to a plot
+      #Coord_fixed ensures the geom_abline has a 45 degree angle
