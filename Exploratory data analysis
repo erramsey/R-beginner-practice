@@ -1,0 +1,246 @@
+#Exploratory data analysis
+
+#Questions
+  #Use quesitons as a tool to guide your investigation into developing an understanding of your data
+  #Questions help focus attention on a specific part of a dataset
+  #Generate a large quantity of questions
+  #Follow up each question with a new question based on what you find
+  #Two types of questions are always useful:
+    #1. What type of variation occurs within my variables?
+    #2. What type of covariation occurs between my variables?
+
+#Variation
+  #Variation: The tendency of the values of a variable to change from measurement to measurement
+  #Each variable has its own pattern of variation, which can reveal interesting info about it
+    #Between and across observations
+
+  #Useful info you'll find in graphs:
+  #Typical values
+    #Which values are the most common? Why?
+    #Which values are rare? Why? Does that match your expectations?
+    #Can you see any unusual patterns? What might explain them?
+    #ex.
+    smaller <- diamonds |>
+      filter(carat < 3)
+    ggplot(smaller, aes(x=carat)) +
+      geom_histogram(binwidth = 0.01)
+      #Why are more diamonds at whole carats and common fractions of carats?
+      #Why are there more diamonds slightly to the right of each peak than to the left?
+    #Visualizations can also reveal clusters, which suggest subgroups exist in data
+      #How are the observations within each subgroup similar to each other?
+      #How are the observations in separate clusters different from each other?
+      #How can you explain or describe the clusters?
+      #Why might the appearance of clusters be misleading?
+    
+#Unusual values
+  #Outliers: typo, extremes, suggest important discoveries
+  #With a lot of data they might be hard to see
+    ggplot(diamonds, aes(x = y)) +
+      geom_histogram(binwidth = 0.5)
+    #Use coord_cartesian() to zoom to smaller values of the y-axis
+    ggplot(diamonds, aes(x = y)) +
+      geom_histogram(binwidth = 0.5) +
+      coord_cartesian(ylim = c(0, 50))
+    #Also has a x_lim() argument to zoom into the x-axis
+    #Use splyr to pluck out unusual values
+    unusual <- diamonds |>
+      filter(y < 3 | y > 20) |>
+      select(price, x, y, z) |>
+      arrange(y)
+    #y can't equal 0, so these values must be incorrect (missing data)
+      #Re-code as NA to prevent misleading calculations
+    #Measurements of 32mm and 59mm are implausable: over an inch long but don't cost enough
+  #If outliers have minimal effect on results and you can't figure why they're there: omit
+  #If outliers have substantial effect on results: don't drop without justification
+    #Figure out what caused them and disclose that they were removed in write-up
+    
+  #Exercises:
+      #1. Explore the distribution of each of the x, y, and z variables in diamonds. What do you learn? 
+      #   Think about a diamond and how you might decide which dimension is the length, width, and depth
+        ggplot(diamonds, aes(x = x)) +
+          geom_histogram(binwidth = 0.01) 
+        ggplot(diamonds, aes(x = y)) +
+          geom_histogram(binwidth = 0.01) 
+        ggplot(diamonds, aes(x = z)) +
+          geom_histogram(binwidth = 0.01) 
+        #x = x has few outliers, main range 4-10. 
+        #x = y main range ~ 5-10, outliers
+        #x = z  main range 2-7, outliers
+        #Data is 'spiky'     
+        #All right skewed
+        #To see summary data (to see outliers):
+        summary(select(diamonds, x, y, z))
+        #To examine outliers with 0 data:
+        filter(diamonds, x == 0 | y == 0 | z == 0)
+        #To see extreme values
+        diamonds |>
+          arrange(desc(y)) |>
+          head()
+        diamonds |>
+          arrange(desc(z)) |>
+          head()
+        #Check scatterplots to see plausability of outliers
+        ggplot(diamonds, aes(x = x, y = y)) +
+          geom_point()  
+        ggplot(diamonds, aes(x = x, y = z)) +
+          geom_point()
+        ggplot(diamonds, aes(x = z, y = y)) +
+          geom_point()
+        #Examining after removing outlieres
+        filter(diamonds, x > 0, x < 10) %>%
+          ggplot() +
+          geom_histogram(mapping = aes(x = x), binwidth = 0.01) +
+          scale_x_continuous(breaks = 1:10)
+        filter(diamonds, z > 0, z < 10) %>%
+          ggplot() +
+          geom_histogram(mapping = aes(x = z), binwidth = 0.01) +
+          scale_x_continuous(breaks = 1:10)  
+        #Skewedness is natural (there are more small diamonds than large)
+        #Why spikes? Maybe some measuring technique
+    #2. Explore the distribution of price. Do you discover anything unusual or surprising? 
+        #(Hint: Carefully think about the binwidth and make sure you try a wide range of values.)
+        ggplot(diamonds, aes(x = price)) +
+          geom_histogram() 
+        ggplot(diamonds, aes(x = price)) +
+          geom_histogram(binwidth = 10) 
+        #Heavily right skewed
+        #There's a weird cut at one point
+        ggplot(diamonds, aes(x = price)) +
+          geom_histogram(binwidth = 10) +
+          coord_cartesian(ylim = c(0, 100), xlim = c(1000,2000))
+        #No data around 1500        
+        #Values start around 300
+        #bulges around 750
+        diamonds |>
+          mutate(ending = price %% 10) |>
+          ggplot(aes(x = ending)) +
+          geom_histogram(binwidth = 1, center = 0)
+    #How many diamonds are 0.99 carat? How many are 1 carat? What do you think is the cause of the difference?
+      carat99 <- filter(diamonds, carat == 0.99)
+      carat1 <- filter(diamonds, carat == 1)
+      #1558 obs for carat = 1, 23 for carat = 0.99
+      #It's probably better to sell if rounding up
+      #To examine summary sums:
+      diamonds |>
+        filter(carat >= 0.99, carat <= 1) |>
+        count(carat)
+
+      diamonds %>%
+        filter(carat >= 0.9, carat <= 1.1) %>%
+        count(carat) %>%
+        print(n = Inf)
+      
+#Unusual values
+  #If you want to move on to the rest of your analysis (and not analyze these values)
+    #1. Drop the entire row with the strange values
+      diamonds2 <- diamonds |>
+        filter(between(y, 3, 20))
+      #This is not recommended. Other values for the obs may still be valid. Gets rid of too much data
+    #2. Replace the unusual values with missing values
+      diamonds2 <- diamonds |>
+        mutate(y = if_else(y < 3 | y > 20, NA, y))
+      #ggplot will warn that the values are missing. Remove warning with na.rm = TRUE
+      ggplot(diamonds2, aes(x = x, y = y)) +
+        geom_point(na.rm = TRUE)
+  #If you want to understand what makes missing values different to obs with recorded values
+    #For example, in nycflights13::flights na means canceled flight
+    #Use is.(na) to check if dep_time is missing, to compare schedule departure time for canceled and non-canceled
+      nycflights13::flights |>
+        mutate(
+          cancelled = is.na(dep_time),
+          sched_hour = sched_dep_time %/% 100,
+          sched_min = sched_dep_time %% 100,
+          sched_dep_time = sched_hour + (sched_min / 60)
+        ) |>
+        ggplot(aes(x = sched_dep_time)) +
+        geom_freqpoly(aes(color = cancelled), binwidth = 1/4)
+
+  #Exercises
+    #1. For a histogram, missing values are removed when the number of observations in each bin are calculated.
+      #In the geom_bar() function, NA is treated as another category.
+      diamonds %>%
+        mutate(cut = if_else(runif(n()) < 0.1, NA_character_, as.character(cut))) %>%
+        ggplot() +
+        geom_bar(mapping = aes(x = cut))
+      #In histogram x must be numeric. In geom bar it counts na as another category
+    #3. 
+      nycflights13::flights |>
+        mutate(
+          cancelled = is.na(dep_time),
+          sched_hour = sched_dep_time %/% 100,
+          sched_min = sched_dep_time %% 100,
+          sched_dep_time = sched_hour + (sched_min / 60)
+        ) |>
+        ggplot(aes(x = sched_dep_time)) +
+        geom_freqpoly(aes(color = cancelled), binwidth = 1/4) +
+        facet_wrap(~cancelled, scales = "free_y") #!!! The important part
+      
+#Covariation
+  #The behavior between variables
+  #Covariation: The tendency for the values of two or more variables to vary together in a related way
+  #Spot by visualizing the relationship between two or more var
+  
+  #A categorical an numerical variable
+    #ex
+      ggplot(diamonds, aes(x = price)) + 
+        geom_freqpoly(aes(color = cut), binwidth = 500, linewidth = 0.75)
+      #Hard to compare shapes because the height varies too much    
+      #Replace count on y-axis with density (the count standardized so that the area under each freq polygon is 1)
+      ggplot(diamonds, aes(x = price, y = after_stat(density))) + 
+        geom_freqpoly(aes(color = cut), binwidth = 500, linewidth = 0.75)
+        #after_stat is used to calculate density 
+    #Another way: boxplot
+      ggplot(diamonds, aes(x = cut, y = price)) +
+        geom_boxplot()
+      #Note: use fct_reorder() to reorder       
+      ggplot(mpg, aes(x = fct_reorder(class, hwy, median), y = hwy)) +
+        geom_boxplot()
+        #Reorder by median value of hwy
+      #Flip sideways by switching x and y aesthetic mappings
+      ggplot(mpg, aes(x = hwy, y = fct_reorder(class, hwy, median))) +
+        geom_boxplot()
+
+  #Exercises
+    #1. 
+      nycflights13::flights |>
+        mutate(
+          cancelled = is.na(dep_time),
+          sched_hour = sched_dep_time %/% 100,
+          sched_min = sched_dep_time %% 100,
+          sched_dep_time = sched_hour + (sched_min / 60)
+        ) |>
+        ggplot(aes(x = cancelled, y = sched_dep_time)) +
+         geom_boxplot()
+    #2. 
+      ggplot(diamonds, aes(x = cut, y = carat)) +
+        geom_boxplot() 
+      ggplot(diamonds, aes(x = carat, y = price)) +
+        geom_point() 
+      #Because so many points, use a boxplot by binning carrot 
+      ggplot(data = diamonds, mapping = aes(x = carat, y = price)) +
+        geom_boxplot(mapping = aes(group = cut_width(carat, 0.1)), orientation = "x")
+    #3. Use coord_flip() to flip boxplot
+      ggplot(diamonds, aes(x = cut, y = carat)) +
+        geom_boxplot() +
+        coord_flip()
+      ggplot(diamonds, aes(x = carat, y = cut)) +
+        geom_boxplot()
+        #The two are identical
+    #4. Boxplots can have too many outliers. Instead you can use letter value plot
+      library('lvplot')
+      ggplot(diamonds, aes(x = cut, y = price)) +
+        geom_lv()
+    #5.
+      #Histogram and violin: easy to visually distinguish differences in the overall shape of the distributions
+      ggplot(diamonds, aes(x = cut, y = price)) +
+        geom_violin()
+      ggplot(diamonds, aes(x=price)) +
+        geom_histogram() + 
+        facet_wrap(~cut)
+      #freqpoly: better for look-up (given a price, it is easy to tell which cut has the highest density)
+      ggplot(diamonds, aes(x=price, color = cut)) +
+        geom_freqpoly()
+      ggplot(diamonds, aes(x=price, color = cut)) +
+        geom_density()
+      
+  #Two categorical variables
