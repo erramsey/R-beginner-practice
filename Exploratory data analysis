@@ -244,3 +244,141 @@
         geom_density()
       
   #Two categorical variables
+    #To see covariation, count the number of obs for each combo of levels of these var
+      ggplot(diamonds, aes(x = cut, y = color)) +
+        geom_count()
+    #Can compute counts with dplyr
+      diamonds |>
+        count(color, cut)
+      #Then visualize with geom_tile()
+      diamonds |>
+        count(color, cut) |>
+        ggplot(aes(x = color, y = cut)) +
+        geom_tile(aes(fill = n))
+    #You can use the seriation package to simultaniously reorder rows and columns
+    #heatmaply for larger plots
+   
+  #Exercises
+    #1. How could you rescale the count dataset above to more clearly show the distribution of cut within color, or color within cut?
+      #Use gorup mutate to calculate a new variable prop which is the proportion of each cut within a color
+      diamonds |>
+        count(color, cut) |>
+        group_by(color) |>
+        mutate(prop = n / sum(n)) |>
+        ggplot(mapping = aes(x = color, y = cut)) +
+        geom_tile(mapping = aes(fill = prop))   
+    #2. 
+      ggplot(diamonds, aes(x = color, fill = cut)) +
+        geom_bar()
+    #3. Use geom_tile() together with dplyr to explore how average flight delays vary by destination and month of year
+      nycflights13::flights |>
+        group_by(month, dest) |>
+        summarise(dep_delay = mean(dep_delay, na.rm = TRUE)) |>
+        ggplot(aes(x = factor(month), y = dest, fill = dep_delay)) +
+        geom_tile() +
+        labs(x = "Month", y = "Destination", fill = "Departure Delay")
+      #Hard to read Y axis. There are missing values
+      #Usually best to have longer labels on y axis for easy reading
+      #Usually best to have categorical var with large number of categoires on Y
+      
+  #Two numerical variables
+    #Scatter plot
+      ggplot(smaller, aes(x = carat, y = price))+
+        geom_point()
+      #Less useful with large dataset because overplotting
+      #Can fix with alpha aesthetic to add transparency
+    #Another option: use bin to bin in two-dimensions
+      ggplot(smaller, aes(x = carat, y = price)) +
+        geom_bin2d()
+        #Can also use geom_hex but you need library(hexbin). /For hexagonal bins
+      ggplot(smaller, aes(x = carat, y = price)) +
+        geom_hex()
+    #Bin one congtinuous variable so it acts like a categorical var
+      #Bin carat and then for each group display a boxplot
+      ggplot(smaller, aes(x = carat, y = price)) +
+        geom_boxplot(aes(group = cut_width(carat, 0.1)))
+        #cut_width divides x into bins with a width of width
+      #Use varwidth = TRUE to make the width ov the boxplot proportional to the number of points
+      ggplot(smaller, aes(x = carat, y = price)) +
+        geom_boxplot(varwidth = TRUE, aes(group = cut_width(carat, 0.1)))
+  
+  #Exercises
+    #1.     
+      ggplot(smaller, aes(color = cut_number(carat, 5), x = price)) +
+        geom_freqpoly()
+      
+      ggplot(smaller, aes(color = cut_width(carat, 1, boundary = 0), x = price)) +
+        geom_freqpoly() +
+        labs(x = "Price", y = "Count", color = "Carat")
+    #2. 
+      ggplot(smaller, aes(x = carat, y = price)) +
+      geom_boxplot(varwidth = TRUE, aes(group = cut_width(price, 2500)))
+
+      ggplot(diamonds, aes(x = cut_number(price, 10), y = carat)) +
+        geom_boxplot() +
+        coord_flip() +
+        xlab("Price")      
+        #10 bins with an equal number of observations, and the width determined by the number of observations
+      
+      ggplot(diamonds, aes(x = cut_width(price, 2000, boundary = 0), y = carat)) +
+        geom_boxplot(varwidth = TRUE) +
+        coord_flip() +
+        xlab("Price")
+      #10 equal-width bins of $2,000. The argument boundary = 0 ensures that first bin is $0–$2,000
+ 
+    #4. 
+      ggplot(diamonds, aes(x = carat, y = price)) +
+        geom_bin2d() +
+        facet_wrap(~cut)
+
+      ggplot(diamonds, aes(x = cut_number(carat, 5), y = price, colour = cut)) +
+        geom_boxplot()
+      
+    #5. 
+      ggplot(data = diamonds) +
+        geom_point(mapping = aes(x = x, y = y)) +
+        coord_cartesian(xlim = c(4, 11), ylim = c(4, 11))
+      
+      #Here, x and y have a strong relationship
+      #A binned plot would not reveal outliers, and may lead us to conclude that the largest value of x was an outlier even though it appears to fit the bivariate pattern well.
+    
+    #6. 
+      ggplot(smaller, aes(x = carat, y = price)) +
+        geom_boxplot(aes(group = cut_number(carat, 20)))
+      #The boxes contain roughly equal number of points
+      
+#Patterns and models
+  #Question if you see a pattern
+    #1. Could it be due to chance?
+    #2. How can you describe the relationship implied by the pattern?
+    #3. How strong is the relationship?
+    #4. What other variables might affect the relationship?
+    #5. Does the relationship change if you look at individual subgroups of the data?
+  #Patterns provide clues about relationships (that is, they reveal covariation)
+  
+  #ex. in diamonds dataset, cut and carat, carat and price are tightly related
+    #How do we find the relationship betwen cut and price?
+    #Use a model to remove the relation between price and carat
+      #Following model predicts price from carat, then computes residuals (difference between predicted and actual)
+      #Residuals show us price of diamond once the effects of carat is removed
+      #log-transform first then later e residuals to get back to scale
+      library(tidymodels)
+      diamonds <- diamonds |>
+        mutate(
+          log_price = log(price),
+          log_carat = log(carat)
+        )
+        
+      diamonds_fit <- linear_reg() |>
+        fit(log_price ~ log_carat, data = diamonds)
+      
+      diamonds_aug <- augment(diamonds_fit, new_data = diamonds) |>
+        mutate(.resid = exp(.resid))
+      
+      ggplot(diamonds_aug, aes(x = carat, y = .resid)) +
+        geom_point()
+
+      #Now you can run without relationship between carat and price
+      ggplot(diamonds_aug, aes(x = cut, y = .resid)) +
+        geom_boxplot()
+      
