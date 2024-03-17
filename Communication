@@ -1,0 +1,162 @@
+#Communication
+  #Make plots as self-explanatory as possible
+
+library(tidyverse)
+library(scales)
+library(ggrepel)
+library(patchwork)
+
+#Labels
+  #Add labels with labs() function
+    ggplot(mpg, aes(x = displ, y = hwy)) +
+      geom_point(aes(color = class)) +
+      geom_smooth(se = FALSE) + 
+      labs(
+        x = "Engine displacement (L)",
+        y = "Highway fuel econmy (mmp)",
+        color = "Car type",
+        title = "Fuel efficiency generally decreases with engine size",
+        subtitle = "Two seaters (sports cars) are an exception because of their light weight",
+        caption = "Data from fueleconomy.gov"
+      )
+  #Avoid titles that just describe what the plot is (ex. scatterplot of y vs x)
+    #Instead, summarize main finding
+    #Subtitle to add additional info beneath title
+    #Caption is often used to describe the source of the data (bottom right)
+    #Replace short variable names with detailed descriptions and use units (x, y, legend)
+    #To use math equations switch "" out for quote()
+      df <- tibble(
+        x = 1:10,
+        y = cumsum(x^2)
+      )
+      ggplot(df, aes(x,y)) +
+        geom_point() +
+        labs(
+          x = quote(x[i]),
+          y = quote(sum(x[i]^2, i == 1, n))
+        )
+      
+  #Exercises
+    #1. 
+      ggplot(mpg, aes(x = class)) +
+        geom_bar() +
+        labs(
+          x = "Class of car",
+          title = "Number of car by class",
+          subtitle = "That's a lot of suvs",
+          caption = "Personally, I prefer compact cars"
+        )
+    #2. The point of interest here is combining color and shape with identical names
+      ggplot(mpg, aes(x = cty, y = hwy)) +
+        geom_point(aes(shape = drv, color = drv)) +
+        labs(
+          x = "City MPG",
+          y = "Highway MPG",
+          color = "Type of drive train",
+          shape = "Type of drive train"
+        )
+      
+#Annotations
+  #Labeling individual obs or groups of obs
+    #Use geom_text()
+    #Two possible source of labels:
+      #1. Have a tibble that provides labels
+        #Pull out cars with the highest engine size in each drive type and save info as new data
+        label_info <- mpg |>
+          group_by(drv) |>
+          arrange(desc(displ)) |>
+          slice_head(n = 1) |>
+          mutate(
+            drive_type = case_when(
+              drv == "f" ~ "front-wheel drive",
+              drv == "r" ~ "rear-wheel drive",
+              drv == "4" ~ "4-wheel drive"
+            )
+         ) |>
+        select(displ, hwy, drv, drive_type)
+        #Use this data frame to replace the legend with these labels directly
+        ggplot(mpg, aes(x = displ, y = hwy, color = drv)) +
+          geom_point(alpha = 0.3) +
+          geom_smooth(se = FALSE) +
+          geom_text(
+            data = label_info, 
+            aes(x = displ, y = hwy, label = drive_type),
+            fontface = "bold", size = 5, hjust = "right", vjust = "bottom"
+          ) +
+          theme(legend.position = "none") #Turns off legends
+        #hjust (horazontal justification) and vjust (vertical justification) to control alignment
+        #The above graph, the labels overlap with each other and the points
+          #Use geom_label_repel() from ggrepel to address
+        ggplot(mpg, aes(x = displ, y = hwy, color = drv)) +
+          geom_point(alpha = 0.3) +
+          geom_smooth(se = FALSE) +
+          geom_label_repel(        #This!
+            data = label_info, 
+            aes(x = displ, y = hwy, label = drive_type),
+            fontface = "bold", size = 5, nudge_y = 2
+          ) +
+          theme(legend.position = "none")
+       #geom_text_repel() from ggrepel can be used to highlight certain points
+        potential_outliers <- mpg |>
+          filter(hwy > 40 | (hwy > 20 & displ > 5))
+        
+        ggplot(mpg, aes(x = displ, y = hwy)) +
+          geom_point() +
+          geom_text_repel(data = potential_outliers, aes(label = model)) +
+          geom_point(data = potential_outliers, color = "red") +
+          geom_point(
+            data = potential_outliers,
+            color = "red", size = 3, shape = "circle open"
+          )
+      #2. 
+       #Other functions for annotation:
+          #geom_hline() and geom_vline(): add reference lines. Make them thick(2) and white 
+          #geom_rect(): Draw a rectangle around points of interest (xmin, xmax, ymin, ymax)
+            #geom_mark_hull() for annotating subsets of points with hulls
+          #geom_segment(): with arrow argument to point with an arrow (x, y, xend, yend)
+          #annotate(): add 1-3 annotation elements to a plot (rather than highlighting)
+           trend_text <- "Larger engine sizes tend to have lower fuel economy." |>
+              str_wrap(width = 30) #to automatically add line breaks to 30 characters per line
+            trend_text
+            
+            ggplot(mpg, aes(x = displ, y = hwy)) +
+              geom_point() +
+              annotate(
+                geom = "label", x = 3.5, y = 38, #Adds the dialogue
+                label = trend_text,
+                hjust = "left", color = "red"
+              ) +
+              annotate(
+                geom = "segment", #Adding an arrow
+                x = 3, y = 35, xend = 5, yend = 25, color = "red",
+                arrow = arrow(type = "closed")
+              )
+  
+  #Exercises
+    #1. Use geom_text() with infinite positions to place text at the four corners of the plot.
+            label <- tribble(
+              ~displ, ~hwy, ~label, ~vjust, ~hjust,
+              Inf, Inf, "Top right", "top", "right",
+              Inf, -Inf, "Bottom right", "bottom", "right",
+              -Inf, Inf, "Top left", "top", "left",
+              -Inf, -Inf, "Bottom left", "bottom", "left"
+            )
+            
+            ggplot(mpg, aes(displ, hwy)) +
+              geom_point() +
+              geom_text(aes(label = label, vjust = vjust, hjust = hjust), data = label)
+    #2. Use annotate() to add a point geom in the middle of your last plot without having to create a tibble. 
+        ggplot(mpg, aes(x = displ, y = hwy)) +
+          geom_point() +
+          annotate(
+            geom = "point", 
+            x = 4.5, y = 22.5, color = "red"
+          )
+    #3. The same appears on all facets
+        ggplot(mpg, aes(x = displ, y = hwy)) +
+          geom_point() +
+          annotate(
+            geom = "label", x = 5, y = 40, 
+            label = "Something"
+          ) +
+          facet_wrap(~drv)
