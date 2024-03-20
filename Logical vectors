@@ -1,0 +1,168 @@
+#Logical vectors
+
+#TRUE FALSE or NA values
+
+library(tidyverse)
+library(nycflights13)
+#dummy data:
+x <- c(1, 2, 3, 5, 7, 11, 13)
+x * 2
+  #Remember:any manipulation we do to a free-floating vector can be done in a dataframe with mutate()
+df <- tibble(x)
+df |>
+  mutate(y = x * 2)
+
+#Comparisons
+   #Create a logical vector via numeric comparisons
+      #< <= > >= != ==
+    #ex. filter to find obs
+      flights |>
+        filter(dep_time > 600 & dep_time < 2000 & abs(arr_delay) < 20)
+    #ex. use mutate to create the underlyigng logical var
+      flights |>
+        mutate(
+          daytime = dep_time > 600 & dep_time < 2000,
+          approx_ontime = abs(arr_delay) < 20,
+          .keep = "used"
+        )
+    #The first example filter is equal to:
+      flights |>
+        mutate(
+          daytime = dep_time > 600 & dep_time < 2000,
+          approx_ontime = abs(arr_delay) < 20
+        ) |>
+        filter(daytime & approx_ontime)
+  #Floating point comparison
+    #Careful when using == with numbers. 
+      #During calculation the answer may be 1, but R calculated it as 0.999999999 so == is FALSE
+      x <- c(1 / 49 * 49, sqrt(2) ^ 2)
+      x == c(1, 2)      #Answer is FALSE FALSE
+      #Use near instead
+      near(x, c(1,2))   #Answer is TRUE TRUE
+  #Missing values
+    #Almost all operation involvng an unknown will also be unknown
+      # NA == NA results in NA
+      #To find missing values use is.na
+    #is.na
+      #Returns TRUE for NA values and FALSE for other values
+      flights |>
+        filter(is.na(dep_time))
+      #Use with arrange
+      flights |>
+        filter(month == 1, day == 1) |>
+        arrange(dep_time)
+        #arrange puts all missing values at end
+        #override this by first sorting by is.na()
+      flights |>
+        filter(month == 1, day == 1) |>
+        arrange(desc(is.na(dep_time)), dep_time)
+
+  #Exercises
+    #2. 
+      flights |>
+        mutate(
+          deptime = is.na(dep_time),
+          scheddeptime = is.na(sched_dep_time),
+          depdelay = is.na(dep_delay)
+        ) |>
+        count(deptime) 
+      
+#Boolean algebra
+  #Combine logical vectors with boolean algebra
+    # & is "and"
+    # | is "or"
+    # ! is "not"
+    # xor() is exclusive for or^2 (ex. xor(x, y))
+      df |> filter(x < -10 | x > 0)
+  #Missing values
+    #A missing value can be either TRUE or FALSE
+      # TRUE | FALSE is true
+      # TRUE | TRUE is true
+      # NA | TRUE is true
+      # NA | FALSE is NA (don't know if NA is TRUE or FALSE)
+  #Order of operations
+    flights |>
+      filter(month == 11 | month == 12) #Result: everything is TRUE
+    #R first evaluates month == 11 creating a logical vector. That logical vector is then | 12
+    #When you use a number with a logical vector, it converts everything apart from 0 to TRUE
+  # %in%
+    # 'and/or', a way to not mix up == |
+    # x %in% y returns a logica vector the same length of x that is TRUE when a value in x is in y
+    1:12 %in% c(1, 5, 11)
+    #So to fix flights above:
+    flights |>
+      filter(month %in% c(11, 12))
+    #Note NA %in% NA is TRUE
+    flights |>
+      filter(dep_time %in% c(NA, 0800))
+
+  #Exercises
+    #1.
+      flights |>
+        filter(arr_delay %in% NA,   #find missing values
+               !(dep_delay %in% NA)) #find non-missing values
+      
+      flights |>
+        filter(arr_delay %in% NA,   
+               !(sched_arr_time %in% NA),
+               !(arr_time %in% NA))
+    #2. How many flights have missing dep_time?
+      flights |>
+        count(dep_time %in% NA)
+      #What other variables are missing in these rows?
+      unusual <- flights |>
+        filter(dep_time %in% NA)
+      glimpse(unusual)
+        #dep_delay, arr_time, arr_delay, air_time are missing. These are cancelled flights
+    #3. Find number of NA per day. Is there a pattern?
+      flights |>
+        group_by(day) |>
+        filter(dep_time %in% NA) |>
+        count(day)
+        #It seems as though there are more near the weekends?
+      
+#Summaries
+  #Logical summaries
+    # any(x) is like |, it return TRUE if there are any TRUEs in x
+    # all(x) is like &, returns TRUE if all x are TRUE
+      #Both return NA if any missing values present
+      #Make the missing values go away with na.rm = TRUE
+    #ex. 
+      flights |>
+        group_by(year, month, day) |>
+        summarize(
+          all_delayed = all(dep_delay <= 60, na.rm = TRUE),
+          any_long_delay = any(arr_delay >= 300, na.rm = TRUE),
+          .groups = "drop"
+        )
+    #Numeric summaries
+      #sum() for number TRUE
+      #mean() for proportion TRUE
+      flights |>
+        group_by(year, month, day) |>
+        summarize(
+          proportion_delayed = mean(dep_delay <= 60, na.rm = TRUE),
+          count_long_delay = sum(arr_delay >= 300, na.rm = TRUE),
+          .groups = "drop"
+        )
+    #Logical subsetting
+      #Filter a single variable to a subset of interest
+        flights |>
+          group_by(year, month, day) |>
+          summarize(
+            behind = mean(arr_delay[arr_delay > 0], na.rm = TRUE),
+            ahead = mean(arr_delay[arr_delay < 0], na.rm = TRUE),
+            n = n(), #total number of flights
+            .groups = "drop"
+          )
+          #Inline filtering: [arr_delay > 0]
+  
+  #Exercises
+    #2. prod() returns the product of all variables in its arguments
+        x <- c(TRUE, TRUE, FALSE, TRUE)
+        prod(x)
+        #Result is 0 bc 1*1*0*1 = 0
+        sum(x)
+        #Result is 3 1+1+0+1
+
+#Conditional transformations
