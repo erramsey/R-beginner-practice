@@ -1,0 +1,110 @@
+#Numbers
+
+library(tidyverse)
+library(nycflights13)
+
+#Making numbers
+  #Numbers should be integer or double format
+  #If you get them as strings, use a parsing function to parse into numbers
+  #Use parse_double with numbers written as strings
+    x <- c("1.2", "5.6", "1e3")
+    parse_double(x)    
+  #Use parse_number() when the string contains non-numeric text you want to ignore
+    x <- c("$1,234", "USD 3.512", "59%")
+    parse_number(x)    
+
+#Counts
+  flights |> count(dest)
+  #To see most common values, add sort = TRUE
+    flights |> count(dest, sort = TRUE)
+  #To see all values, use |> View() or |> print(n = Inf)    
+  #Perform same computation manually:
+    flights |>
+      group_by(dest) |>
+      summarize(
+        n = n(),
+        delay = mean(arr_delay, na.rm = TRUE)
+      )
+  #Variant n() functions:
+    #n_distinct(x): count number of unique values of 1+ var
+      flights |>
+        group_by(dest) |>
+        summarize(carriers = n_distinct(carrier)) |>
+        arrange(desc(carriers))
+        #Which destinations served by most carriers?
+    #sum(): weighted count
+      flights |>
+        group_by(tailnum) |>
+        summarize(miles = sum(distance))
+      #count() has a wt argument that does the same
+      flights |> count(tailnum, wt = distance)
+    #Count missing values by combining sum() and is.na()
+      flights |>
+        group_by(dest) |>
+        summarize(n_cancelled = sum(is.na(dep_time)))
+
+  #Exercises
+    #1. Use count() to count number of rows with a missing value for a given var?
+      test <- tribble(
+        ~x, ~y, ~z,
+        1, "h", 0.08,
+        2, "m", 0.83,
+        5, NA, 0.60,
+        7, "k", NA,
+        1, NA, 0.60
+      )
+      
+      test |>
+        count(y)
+      #This shows the number of rows with NA for the variable y
+    #2. Expand the following calls to count() to instead use group_by(), summarize(), arrange()
+      flights |> count(dest, sort = TRUE)
+
+      flights |>
+        group_by(dest) |>
+        summarize(n = n()) |>
+        arrange(desc(n))
+      
+      flights |> count(tailnum, wt = distance)
+  
+      flights |>
+        group_by(tailnum) |>
+        summarize(dist = sum(distance))
+
+#Numeric Transformations      
+  #Recycling rules determine what happens when the left and right sides of an equation have different lengths
+    #The short vector is recycled (repeated)
+    #ex.
+      x <- c(1, 2, 3, 4, 5)
+      x / 5
+      #This is the same as:
+      x / c(5, 5, 5, 5, 5)
+    #Will do the same for vectors with multiple numbers 
+      x / c(1, 2)
+      x / c(1, 2, 1, 2, 1)
+  #If you use == instead of %in%, recycling can give a weird result
+    flights |>
+      filter(month == c(1, 2))
+    #Result: odd numbered rows that depart in Jan and even number rows that depart in Feb
+  #Minimum and Maximum
+    #pmin() pmax() return the smallest or largest value in each row
+      df <- tribble(
+        ~x, ~y,
+        1, 2,
+        5, 3,
+        3, NA
+      )
+      df |>
+        mutate(
+          min = pmin(x, y, na.rm = TRUE),
+          max = pmax(x, y, na.rm = TRUE)
+        )
+    #min() and max() take multiple obs and return the same value
+    #That is, it shows one value, the min or max of the table
+      df |>
+        mutate(
+          min = min(x, y, na.rm = TRUE),
+          max = max(x, y, na.rm = TRUE)
+        )
+  #Modular arithmetic
+    #
