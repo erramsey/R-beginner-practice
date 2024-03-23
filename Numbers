@@ -107,4 +107,49 @@ library(nycflights13)
           max = max(x, y, na.rm = TRUE)
         )
   #Modular arithmetic
-    #
+    #Division that yields a whole number and a remainder
+    # %/% does integer division, %% computes the remainder
+      1:10 %/% 3
+      1:10 %% 3
+    #We can use this in the flights dataset to unpack sched_dep_time variable into hours and minutes
+      flights |> 
+        mutate(
+          hour = sched_dep_time %/% 100,
+          minute = sched_dep_time %% 100,
+          .keep = "used"
+        )
+  #Logarithms
+    #log() is the natural log (inverse is exp)
+    #log2(): base 2
+    #log10(): base 10 (inverse is 10^)
+  #Rounding
+    #round(x): round number to nearest integer
+    #round(x, digits = 2) will round to nearest 0.01
+      round(1222.401, digits = -2)
+    #When ending is 5 (eg 1.5) it will round to nearest even integer
+    #floor(): always rounds down
+    #ceiling(): always rounds up
+      #Neither have digits argument. Use math to do manually
+      floor(x / 0.01) * 0.01
+      #Do something similar to round differently. ex. round to nearest 0.25
+      round(x / 0.25) * 0.25
+  #Cutting numbers into ranges
+    #cut(): break up a numeric vector into discrete buckets
+      x <- c(1, 2, 3, 15, 20)
+      cut(x, 
+          breaks = c(0, 5, 10, 15, 100),
+          labels = c("sm", "md", "lg", "xl")) #Have less labels than breaks
+  #Cumulative and rolling aggregates
+    #cumsum(): cumulative sums
+      x <- 1:10
+      cumsum(x)      
+
+  #Exercises:
+    #1. 
+      flights |> 
+        group_by(hour = sched_dep_time %/% 100) |> 
+        summarize(prop_cancelled = mean(is.na(dep_time)), n = n()) |> 
+        filter(hour > 1) |> 
+        ggplot(aes(x = hour, y = prop_cancelled)) +
+        geom_line(color = "grey50") + 
+        geom_point(aes(size = n))
