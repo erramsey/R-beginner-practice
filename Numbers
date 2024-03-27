@@ -148,8 +148,45 @@ library(nycflights13)
     #1. 
       flights |> 
         group_by(hour = sched_dep_time %/% 100) |> 
+          #Make a new variable called hour that's the schedule time integer divided by 100
+          #Group by the new variable hour
         summarize(prop_cancelled = mean(is.na(dep_time)), n = n()) |> 
+          #The variable prop_canceled is the mean of the missing departure times
+          #We summarize this new variable, including the number of cases in the variable
+          #That is, we make a new table where the variables are prop_cancelled, n, and hour
         filter(hour > 1) |> 
+          #We filter the summary table for when hour is greater than 1
         ggplot(aes(x = hour, y = prop_cancelled)) +
+          #We set up a plot where the x variable is hour and the y is prop_cancelled
         geom_line(color = "grey50") + 
+          #We make a line plot of the x and y set up in ggplot. The color of the line is grey
         geom_point(aes(size = n))
+          #We make a scatter plot of the x and y set up in ggplot. The size of the points is based on number n
+    #2. What trig functions does R provide? Guess some names and look up the documentation. 
+      #Functions: sin(x), tan(x), cos(x), acos(x), atan(x), asin(x)
+        #atan2(y, x), cospi(x), sinpi(x), tanpi(x)
+      #Angles are in radians
+    #3. Turn dep_time and sched_dep_time into continuous numbers
+      #How they are now:
+      flights |>
+        filter(month == 1, day ==1) |>
+        ggplot(aes(x = sched_dep_time, y = dep_delay)) +
+        geom_point()
+      #Convert dep_time and sched_time to fractional hours or minutes since midnight
+      flights |>
+        mutate(
+          dep_time = (dep_time %/% 100) * 60 + (dep_time %% 100),
+          #Divide by 100 to change 530 (5:30) into 5.30 hours
+            #Multiply by 60 to change into minutes
+          #%% results in the remainder of the division
+          sched_dep_time = (sched_dep_time %/% 100) * 60 + (sched_dep_time %% 100))      
+    #4. Round dep_time and arr_time to the nearest five minutes
+      flights |>
+        mutate(
+          dep_time = (dep_time %/% 100) * 60 + (dep_time %% 100),
+          sched_dep_time = (sched_dep_time %/% 100) * 60 + (sched_dep_time %% 100),          
+          round_dep_time = round(dep_time / 5) * 5,
+          round_sched_dep_time = round(sched_dep_time / 5) * 5
+        )
+      
+#General Transformations
