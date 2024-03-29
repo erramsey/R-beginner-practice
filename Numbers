@@ -190,3 +190,180 @@ library(nycflights13)
         )
       
 #General Transformations
+#Numeric Transformations      
+  #Recycling rules determine what happens when the left and right sides of an equation have different lengths
+    #The short vector is recycled (repeated)
+    #ex.
+      x <- c(1, 2, 3, 4, 5)
+      x / 5
+      #This is the same as:
+      x / c(5, 5, 5, 5, 5)
+    #Will do the same for vectors with multiple numbers 
+      x / c(1, 2)
+      x / c(1, 2, 1, 2, 1)
+  #If you use == instead of %in%, recycling can give a weird result
+    flights |>
+      filter(month == c(1, 2))
+    #Result: odd numbered rows that depart in Jan and even number rows that depart in Feb
+  #Minimum and Maximum
+    #pmin() pmax() return the smallest or largest value in each row
+      df <- tribble(
+        ~x, ~y,
+        1, 2,
+        5, 3,
+        3, NA
+      )
+      df |>
+        mutate(
+          min = pmin(x, y, na.rm = TRUE),
+          max = pmax(x, y, na.rm = TRUE)
+        )
+    #min() and max() take multiple obs and return the same value
+    #That is, it shows one value, the min or max of the table
+      df |>
+        mutate(
+          min = min(x, y, na.rm = TRUE),
+          max = max(x, y, na.rm = TRUE)
+        )
+  #Modular arithmetic
+    #Division that yields a whole number and a remainder
+    # %/% does integer division, %% computes the remainder
+      1:10 %/% 3
+      1:10 %% 3
+    #We can use this in the flights dataset to unpack sched_dep_time variable into hours and minutes
+      flights |> 
+        mutate(
+          hour = sched_dep_time %/% 100,
+          minute = sched_dep_time %% 100,
+          .keep = "used"
+        )
+  #Logarithms
+    #log() is the natural log (inverse is exp)
+    #log2(): base 2
+    #log10(): base 10 (inverse is 10^)
+  #Rounding
+    #round(x): round number to nearest integer
+    #round(x, digits = 2) will round to nearest 0.01
+      round(1222.401, digits = -2)
+    #When ending is 5 (eg 1.5) it will round to nearest even integer
+    #floor(): always rounds down
+    #ceiling(): always rounds up
+      #Neither have digits argument. Use math to do manually
+      floor(x / 0.01) * 0.01
+      #Do something similar to round differently. ex. round to nearest 0.25
+      round(x / 0.25) * 0.25
+  #Cutting numbers into ranges
+    #cut(): break up a numeric vector into discrete buckets
+      x <- c(1, 2, 3, 15, 20)
+      cut(x, 
+          breaks = c(0, 5, 10, 15, 100),
+          labels = c("sm", "md", "lg", "xl")) #Have less labels than breaks
+  #Cumulative and rolling aggregates
+    #cumsum(): cumulative sums
+      x <- 1:10
+      cumsum(x)      
+
+  #Exercises:
+    #1. 
+      flights |> 
+        group_by(hour = sched_dep_time %/% 100) |> 
+          #Make a new variable called hour that's the schedule time integer divided by 100
+          #Group by the new variable hour
+        summarize(prop_cancelled = mean(is.na(dep_time)), n = n()) |> 
+          #The variable prop_canceled is the mean of the missing departure times
+          #We summarize this new variable, including the number of cases in the variable
+          #That is, we make a new table where the variables are prop_cancelled, n, and hour
+        filter(hour > 1) |> 
+          #We filter the summary table for when hour is greater than 1
+        ggplot(aes(x = hour, y = prop_cancelled)) +
+          #We set up a plot where the x variable is hour and the y is prop_cancelled
+        geom_line(color = "grey50") + 
+          #We make a line plot of the x and y set up in ggplot. The color of the line is grey
+        geom_point(aes(size = n))
+          #We make a scatter plot of the x and y set up in ggplot. The size of the points is based on number n
+    #2. What trig functions does R provide? Guess some names and look up the documentation. 
+      #Functions: sin(x), tan(x), cos(x), acos(x), atan(x), asin(x)
+        #atan2(y, x), cospi(x), sinpi(x), tanpi(x)
+      #Angles are in radians
+    #3. Turn dep_time and sched_dep_time into continuous numbers
+      #How they are now:
+      flights |>
+        filter(month == 1, day ==1) |>
+        ggplot(aes(x = sched_dep_time, y = dep_delay)) +
+        geom_point()
+      #Convert dep_time and sched_time to fractional hours or minutes since midnight
+      flights |>
+        mutate(
+          dep_time = (dep_time %/% 100) * 60 + (dep_time %% 100),
+          #Divide by 100 to change 530 (5:30) into 5.30 hours
+            #Multiply by 60 to change into minutes
+          #%% results in the remainder of the division
+          sched_dep_time = (sched_dep_time %/% 100) * 60 + (sched_dep_time %% 100))      
+    #4. Round dep_time and arr_time to the nearest five minutes
+      flights |>
+        mutate(
+          dep_time = (dep_time %/% 100) * 60 + (dep_time %% 100),
+          sched_dep_time = (sched_dep_time %/% 100) * 60 + (sched_dep_time %% 100),          
+          round_dep_time = round(dep_time / 5) * 5,
+          round_sched_dep_time = round(sched_dep_time / 5) * 5
+        )
+      
+#General Transformations
+  #Ranks
+    #min_rank(): rank values
+      x <- c(1, 2, 2, 3, 4, NA)
+      min_rank(x) #result: 1st, 2nd, 2nd, 4th, 5th, NA
+      min_rank(desc(x)) #5th, 3rd, 3rd, 2nd, 1st, NA
+    #Other:
+      #row_number()
+      #dense_rank()
+      #percent_rank()
+      #cume_dist()
+    #Can do same thing with rank() ties.method argument
+    #Set na.last = "keep" to keep NAs as NA
+    #ex.
+      df <- tibble(id = 1:10)
+      
+      df |>
+        mutate(
+          row0 = row_number() -1, #Row_number gives number of current row
+          three_groups = row0 %% 3, #%% computes the division remainder 
+          three_in_each_group = row0 %/% 3 # %/% does integer division
+        )
+      #Result: two ways the rows are divided into ~equal groups
+  #Offsets
+    #lead(): refer to values just before "current" value
+    #lag(): refer to values just after "current" value
+      x <- c(2, 3, 5, 11, 19, 35)
+      lag(x) #start with NA, remove last number     
+      lead(x) #end with NA, remove first number
+    # x - lag(x): gives difference between current and previous value
+    # x == lag(x): tells you when the current value changes
+  #Consecutive identifiers
+    #When you want to start a new group each time something happens
+      #ex. break up time frames into sessions
+        events <- tibble(
+          time = c(0, 1, 2, 3, 5, 10, 12, 15, 17, 19, 20, 27, 28, 30)
+        )
+        #Compute time between events and figure out if there's a gap big enough to break into separate sessions
+        events <- events |> 
+          mutate(
+            diff = time - lag(time, default = first(time)),
+            has_gap = diff >= 5
+          )
+      
+        events |> mutate(
+          group = cumsum(has_gap) #accumulation sum of TRUE
+        )
+         
+        #ex2. 
+        #Another method: consecutive_id(): new group each time an argument changes
+        df <- tibble(
+          x = c("a", "a", "a", "b", "c", "c", "d", "e", "a", "a", "b", "b"),
+          y = c(1, 2, 3, 2, 4, 1, 3, 9, 4, 8, 10, 199)
+        )
+          #keeps first row from each repeated x
+        df |> 
+          group_by(id = consecutive_id(x)) |> 
+          slice_head(n = 1)        
+        
