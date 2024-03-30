@@ -366,4 +366,39 @@ library(nycflights13)
         df |> 
           group_by(id = consecutive_id(x)) |> 
           slice_head(n = 1)        
+
+  #Exercises
+    #1. Find 10 most delayed flights with a ranking function
+        filter(flights, min_rank(dep_delay))
+          #This doesn't work because it 'must be a logical vector'
+
+        filter(flights, min_rank(desc(dep_delay))<=10)
+   #2. Which plane (tailnum) has the worst on-time record?
+        #worst on-time record is arr_delay
+        filter(flights, min_rank(desc(arr_delay))<=1)
+   #3. What time of day should you fly if you want to avoid delays as much as possible?
+        #filter by dep_delay. Maybe turn into a table for dep_time.
+        flights |> 
+          group_by(hour) |>
+          arrange(dep_delay) |>
+          ggplot(aes(x = hour, y = arr_delay)) +
+          geom_point()
+        #Another way I found online:
+        flights %>%
+          ggplot(aes(x=factor(hour), fill=arr_delay>5 | is.na(arr_delay))) + geom_bar()
+        #Early morning flights have less delay
+    #4. 
+        flights |> group_by(dest) |> relocate(dest) |> filter(row_number() < 4) 
+        #This doesn't do anything result-wise. I think it does stuff that isn't seen
         
+        flights |> group_by(dest) |> relocate(dest) |> filter(row_number(dep_delay) < 4)
+        #This rearranges things but I don't know why
+        #Row_number gives each input of dep_delay a rank, which it should filter by
+        flights |> group_by(dest)  |> mutate(row_number = (row_number(dep_delay) < 4)) |> relocate(row_number)
+        #row_number as a column is TRUE/FALSE
+        flights |> group_by(dest)  |> mutate(row_number = (row_number(dep_delay) < 4)) |> relocate(row_number) |> filter(row_number == TRUE)
+        #This gives the same results as the original
+          #So it returns all row numbers that are TRUE
+        #Without group_by(dest) it only returns 3 variables as TRUE. These must be the listed 1 2 3
+    #5. 
+                                             
